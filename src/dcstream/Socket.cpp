@@ -43,7 +43,6 @@
 #include "log.h"
 
 #include <QtNetwork/QTcpSocket>
-#include <QThread>
 
 #define RECEIVE_TIMEOUT_MS                 1000
 #define WAIT_FOR_BYTES_WRITTEN_TIMEOUT_MS  1000
@@ -55,6 +54,7 @@ const unsigned short Socket::defaultPortNumber_ = 1701;
 
 Socket::Socket(const std::string &hostname, const unsigned short port)
     : socket_(new QTcpSocket())
+    , remoteProtocolVersion_(-1)
 {
     if( !connect( hostname, port ))
     {
@@ -66,7 +66,6 @@ Socket::Socket(const std::string &hostname, const unsigned short port)
 
 Socket::~Socket()
 {
-    socket_->flush();
     delete socket_;
 }
 
@@ -82,6 +81,8 @@ int Socket::getFileDescriptor() const
 
 bool Socket::hasMessage(const size_t messageSize) const
 {
+    // needed to 'wakeup' socket when no data was streamed for a while
+    socket_->waitForReadyRead(0);
     return socket_->bytesAvailable() >= (int)(MessageHeader::serializedSize + messageSize);
 }
 
@@ -151,6 +152,11 @@ bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
     return true;
 }
 
+int32_t Socket::getRemoteProtocolVersion() const
+{
+    return remoteProtocolVersion_;
+}
+
 bool Socket::receive(MessageHeader & messageHeader)
 {
     while( socket_->bytesAvailable() < qint64(MessageHeader::serializedSize) )
@@ -200,14 +206,13 @@ bool Socket::checkProtocolVersion()
             return false;
     }
 
-    int32_t protocolVersion = -1;
-    socket_->read((char *)&protocolVersion, sizeof(int32_t));
+    socket_->read((char *)&remoteProtocolVersion_, sizeof(int32_t));
 
-    if( protocolVersion == NETWORK_PROTOCOL_VERSION )
+    if( remoteProtocolVersion_ == NETWORK_PROTOCOL_VERSION )
         return true;
 
     put_flog( LOG_ERROR, "unsupported protocol version %i != %i",
-              protocolVersion, NETWORK_PROTOCOL_VERSION );
+              remoteProtocolVersion_, NETWORK_PROTOCOL_VERSION );
     return false;
 }
 

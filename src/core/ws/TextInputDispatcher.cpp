@@ -39,35 +39,30 @@
 
 #include "TextInputDispatcher.h"
 
-#include "DisplayGroupManager.h"
-#include "ContentWindowManager.h"
+#include "DisplayGroup.h"
+#include "ContentWindow.h"
+#include "ContentInteractionDelegate.h"
 
-#include "Event.h"
-using dc::Event;
+#include <QKeyEvent>
 
-TextInputDispatcher::TextInputDispatcher(DisplayGroupManagerPtr displayGroupManager,
-                                         QObject *parent)
-    : QObject(parent)
-    , displayGroupManager_(displayGroupManager)
+TextInputDispatcher::TextInputDispatcher(DisplayGroupPtr displayGroup,
+                                         QObject *parentObject)
+    : QObject(parentObject)
+    , displayGroup_(displayGroup)
 {
 }
 
-void TextInputDispatcher::sendKeyEventToActiveWindow(const char key) const
+void TextInputDispatcher::sendKeyEventToActiveWindow( const char key ) const
 {
-    ContentWindowManagerPtr window = displayGroupManager_->getActiveWindow();
-    if (!window)
+    ContentWindowPtr window = displayGroup_->getActiveWindow();
+    if ( !window )
         return;
 
-    Event event;
-    event.key = keyMapper_.getQtKeyCode(key);
+    QKeyEvent pressEvent( QEvent::KeyPress, keyMapper_.getQtKeyCode( key ),
+                          0, QString( key ));
+    QKeyEvent releaseEvent( QEvent::KeyRelease, keyMapper_.getQtKeyCode( key ),
+                            0, QString( key ));
 
-    std::string text;
-    text.push_back(key);
-    strncpy(event.text, text.c_str(), sizeof(event.text));
-
-    event.type = Event::EVT_KEY_PRESS;
-    window->setEvent(event);
-
-    event.type = Event::EVT_KEY_RELEASE;
-    window->setEvent(event);
+    window->getInteractionDelegate().keyPressEvent( &pressEvent );
+    window->getInteractionDelegate().keyReleaseEvent( &releaseEvent );
 }

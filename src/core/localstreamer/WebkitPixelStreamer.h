@@ -68,31 +68,31 @@ public:
     /**
      * Constructor.
      *
-     * @param size The desired size of the webpage viewport. The actual stream
+     * @param webpageSize The desired size of the webpage viewport. The actual stream
      *        dimensions will be: size * default zoom factor (2x).
      * @param url The webpage to load.
      */
-    WebkitPixelStreamer(const QSize& size, const QString& url);
+    WebkitPixelStreamer(const QSize& webpageSize, const QString& url);
 
     /** Destructor. */
     ~WebkitPixelStreamer();
 
     /** Get the size of the webpage images. */
-    virtual QSize size() const;
+    QSize size() const override;
 
     /**
      * Open a webpage.
      *
      * @param url The address of the webpage to load.
      */
-    void setUrl(QString url);
+    void setUrl(const QString& url);
 
     /** Get the QWebView used internally by the streamer. */
     const QWebView* getView() const;
 
 public slots:
     /** Process an Event. */
-    virtual void processEvent(dc::Event event);
+    void processEvent(dc::Event event) override;
 
 private slots:
     void update();
@@ -110,19 +110,19 @@ private:
 
     unsigned int initialWidth_;
 
-    void processClickEvent(const Event &event);
-    void processPressEvent(const Event &event);
-    void processMoveEvent(const Event &event);
-    void processReleaseEvent(const Event &event);
-    void processWheelEvent(const Event &event);
-    void processKeyPress(const Event &event);
-    void processKeyRelease(const Event &event);
-    void processViewSizeChange(const Event &event);
+    void processClickEvent(const Event &clickEvent);
+    void processPressEvent(const Event &pressEvent);
+    void processMoveEvent(const Event &moveEvent);
+    void processReleaseEvent(const Event &releaseEvent);
+    void processWheelEvent(const Event &wheelEvent);
+    void processKeyPress(const Event &keyEvent);
+    void processKeyRelease(const Event &keyEvent);
+    void processViewSizeChange(const Event &sizeEvent);
 
-    QWebHitTestResult performHitTest(const Event &event) const;
-    QPoint getPointerPosition(const Event &event) const;
+    QWebHitTestResult performHitTest(const Event &dcEvent) const;
+    QPoint getPointerPosition(const Event &dcEvent) const;
     bool isWebGLElement(const QWebElement &element) const;
-    void setSize(const QSize& size);
+    void setSize(const QSize& webpageSize);
     void recomputeZoomFactor();
 };
 

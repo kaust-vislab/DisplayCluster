@@ -40,29 +40,26 @@
 #define TEXTURE_H
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include "GLTexture2D.h"
+#include "GLQuad.h"
 
-class Texture : public FactoryObject {
+class Texture : public FactoryObject
+{
+public:
+    Texture(const QString uri);
+    ~Texture();
 
-    public:
+    void getDimensions(int &width, int &height) const override;
+    void render(const QRectF& texCoords) override;
 
-        Texture(QString uri);
-        ~Texture();
+private:
+    QString uri_;
+    QSize imageSize_;
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
+    GLTexture2D texture_;
+    GLQuad quad_;
 
-    private:
-
-        // image location
-        QString uri_;
-
-        // original image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        GLuint textureId_;
+    bool generateTexture();
 };
 
 #endif

@@ -45,14 +45,14 @@
 namespace dc
 {
 
-ImageWrapper::ImageWrapper(const void *data, const unsigned int width, const unsigned int height,
-                           const PixelFormat format, const unsigned int x, const unsigned int y)
-    : data(data)
-    , width(width)
-    , height(height)
-    , pixelFormat(format)
-    , x(x)
-    , y(y)
+ImageWrapper::ImageWrapper(const void *data_, const unsigned int width_, const unsigned int height_,
+                           const PixelFormat format_, const unsigned int x_, const unsigned int y_)
+    : data(data_)
+    , width(width_)
+    , height(height_)
+    , pixelFormat(format_)
+    , x(x_)
+    , y(y_)
     , compressionPolicy(COMPRESSION_AUTO)
     , compressionQuality(DEFAULT_COMPRESSION_QUALITY)
 {}

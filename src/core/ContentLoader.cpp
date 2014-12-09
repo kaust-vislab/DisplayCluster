@@ -39,12 +39,12 @@
 
 #include "ContentLoader.h"
 
-#include "DisplayGroupManager.h"
-#include "ContentWindowManager.h"
-#include "log.h"
+#include "DisplayGroup.h"
+#include "ContentWindow.h"
+#include "ContentFactory.h"
 
-ContentLoader::ContentLoader(DisplayGroupManagerPtr displayGroupManager)
-    : displayGroupManager_(displayGroupManager)
+ContentLoader::ContentLoader(DisplayGroupPtr displayGroup)
+    : displayGroup_(displayGroup)
 {
 }
 
@@ -52,34 +52,16 @@ bool ContentLoader::load(const QString& filename, const QPointF& windowCenterPos
 {
     ContentPtr content = ContentFactory::getContent( filename );
     if( !content )
-    {
         return false;
-    }
 
-    ContentWindowManagerPtr contentWindow( new ContentWindowManager( content ));
-    displayGroupManager_->addContentWindowManager( contentWindow );
-
-    // TODO (DISCL-21) Remove this when content dimensions request is no longer needed
-    contentWindow->adjustSize( SIZE_1TO1 );
+    ContentWindowPtr contentWindow( new ContentWindow( content ));
 
     if (!windowSize.isNull())
         contentWindow->setSize(windowSize.width(), windowSize.height());
 
-    if (!windowCenterPosition.isNull())
-        contentWindow->centerPositionAround(windowCenterPosition, true);
+    contentWindow->centerPositionAround(windowCenterPosition, true);
+
+    displayGroup_->addContentWindow( contentWindow );
 
     return true;
-}
-
-bool ContentLoader::load(const QString& filename, const QString& parentWindowUri)
-{
-    // Center the new content where the dock is
-    ContentWindowManagerPtr parentWindow = displayGroupManager_->getContentWindowManager(parentWindowUri);
-    if (parentWindow)
-    {
-        return load(filename, parentWindow->getWindowCenterPosition());
-    }
-
-    put_flog(LOG_WARN, "Could not find window: ", parentWindowUri.toStdString().c_str());
-    return load(filename);
 }

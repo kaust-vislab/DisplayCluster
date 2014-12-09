@@ -37,121 +37,34 @@
 /*********************************************************************/
 
 #include "Marker.h"
-#include "log.h"
-#include "configuration/Configuration.h"
-#include "globals.h"
-#include "DisplayGroupManager.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
 
-#include <QGLWidget>
-
-#define MARKER_IMAGE_FILENAME ":/img/marker.png"
-
-GLuint Marker::textureId_ = 0;
+// number of seconds before a marker stops being rendered
+#define MARKER_TIMEOUT_SECONDS 5
 
 Marker::Marker()
+{}
+
+void Marker::setPosition(const QPointF& position)
 {
-    x_ = y_ = 0.;
-
-    if(g_mpiRank != 0 && textureId_ == 0 && g_mainWindow->getGLWindow( ))
-    {
-        // load marker texture
-        QImage image(MARKER_IMAGE_FILENAME);
-
-        if(image.isNull())
-        {
-            put_flog(LOG_ERROR, "error loading marker texture '%s'", MARKER_IMAGE_FILENAME);
-            return;
-        }
-
-        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
-    }
+    position_ = position;
+    touch();
 }
 
-Marker::~Marker()
+QPointF Marker::getPosition() const
 {
+    return position_;
 }
 
-void Marker::releaseTexture()
+void Marker::touch()
 {
-    g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-    textureId_ = 0;
+    updatedTimestamp_ = boost::posix_time::microsec_clock::universal_time();
 }
 
-void Marker::setPosition(float x, float y)
+bool Marker::isActive(const boost::posix_time::ptime currentTime) const
 {
-    x_ = x;
-    y_ = y;
-    updatedTimestamp_ = g_displayGroupManager->getTimestamp();
-
-    emit(positionChanged());
-}
-
-void Marker::getPosition(float &x, float &y)
-{
-    x = x_;
-    y = y_;
-}
-
-bool Marker::getActive()
-{
-    if((g_displayGroupManager->getTimestamp() - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
-    {
+    if((currentTime - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
         return false;
-    }
     else
-    {
         return true;
-    }
 }
 
-void Marker::render()
-{
-    // only render recently active markers
-    if(getActive() == false)
-    {
-        return;
-    }
-
-    float markerWidth = MARKER_WIDTH;
-
-    // marker height needs to be scaled by the tiled display aspect ratio
-    float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
-    float markerHeight = markerWidth * tiledDisplayAspect;
-
-    // draw the texture
-    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
-
-    // disable depth testing and enable blending
-    glDisable(GL_DEPTH_TEST);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // enable texturing
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textureId_);
-
-    glPushMatrix();
-    glTranslated(x_, y_, 0.);
-
-    glBegin(GL_QUADS);
-
-    glTexCoord2f(0,0);
-    glVertex2f(-markerWidth,-markerHeight);
-
-    glTexCoord2f(1,0);
-    glVertex2f(markerWidth,-markerHeight);
-
-    glTexCoord2f(1,1);
-    glVertex2f(markerWidth,markerHeight);
-
-    glTexCoord2f(0,1);
-    glVertex2f(-markerWidth,markerHeight);
-
-    glEnd();
-
-    glPopMatrix();
-    glPopAttrib();
-}

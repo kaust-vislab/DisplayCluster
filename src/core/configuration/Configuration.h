@@ -41,6 +41,7 @@
 
 #include <QString>
 #include <QColor>
+#include <QRectF>
 
 #include "types.h"
 
@@ -65,116 +66,73 @@ class Configuration
 {
 public:
     /**
-     * @brief Configuration constructor
+     * Create a new configuration from an xml file
      * @param filename path to the xml configuration file
-     * @param options a pointer to options that change during runtime
+     * @throw std::runtime_error if the file could not be read
      */
-    Configuration(const QString& filename, OptionsPtr options);
+    Configuration(const QString& filename);
+
+    /** Destructor. */
     virtual ~Configuration() {}
 
-    /**
-     * @brief getTotalScreenCountX Get the total number of screens along the x axis
-     * @return
-     */
+    /** Get the total number of screens along the x axis. */
     int getTotalScreenCountX() const;
 
-    /**
-     * @brief getTotalScreenCountY Get the total number of screens along the y axis
-     * @return
-     */
+    /** Get the total number of screens along the y axis. */
     int getTotalScreenCountY() const;
 
     /**
-     * @brief getScreenWidth Get the width of a screen.
+     * Get the width of a screen.
      * @return width in pixel units
      * @note All the screens have the same size.
      */
     int getScreenWidth() const;
 
     /**
-     * @brief getScreenWidth Get the height of a screen.
+     * Get the height of a screen.
      * @return height in pixel units
      * @note All the screens have the same size.
      */
     int getScreenHeight() const;
 
     /**
-     * @brief getMullionWidth Get the padding nedded to compensate for the physical displays' bezel
+     * Get the padding nedded to compensate for the physical displays' bezel.
      * @return horizontal padding between two screens in pixel units
      */
     int getMullionWidth() const;
 
     /**
-     * @brief getMullionHeight Get the padding nedded to compensate for the physical displays' bezel
+     * Get the padding nedded to compensate for the physical displays' bezel.
      * @return vertical padding between two screens in pixel units
      */
     int getMullionHeight() const;
 
     /**
-     * @brief getTotalWidth Get the total width of the DisplayWall, including the Mullion padding.
+     * Get the total width of the DisplayWall, including the Mullion padding.
      * @return width in pixel units
      */
     int getTotalWidth() const;
 
     /**
-     * @brief getTotalHeight Get the total height of the DisplayWall, including the Mullion padding.
+     * Get the total height of the DisplayWall, including the Mullion padding.
      * @return height in pixel units
      */
     int getTotalHeight() const;
 
-    /**
-     * @brief getFullscreen Display the windows in fullscreen mode
-     * @return
-     */
+    /** Get the aspect ratio of the DisplayWall, including Mulltion padding. */
+    double getAspectRatio() const;
+
+    /** Get the normalized coordinates and dimensions of a screen. */
+    QRectF getNormalizedScreenRect(const QPoint& tileIndex) const;
+
+    /** Display the windows in fullscreen mode. */
     bool getFullscreen() const;
 
-    /**
-     * @brief getBackgroundUri Get the URI to the Content to be used as background
-     * @return empty string if unspecified
-     */
-    const QString& getBackgroundUri() const;
-
-    /**
-     * @brief getBackgroundColor Get the uniform color to use for Background
-     * @return defaults to black if unspecified
-     */
-    const QColor& getBackgroundColor() const;
-
-    /**
-     * @brief setBackgroundColor Set the background color
-     * @param color
-     */
-    void setBackgroundColor(const QColor &color);
-
-    /**
-     * @brief setBackgroundUri Set the URI to the Content to be used as background
-     * @param uri empty string to use no background content
-     */
-    void setBackgroundUri(const QString &uri);
-
-    /**
-     * @brief save Save the configuration to the current xml file.
-     * @return true on succes, false on failure
-     */
-    bool save() const;
-
-    /**
-     * @brief save Save the configuration to the specified xml file.
-     * @param filename destination file
-     * @return true on succes, false on failure
-     */
-    bool save(const QString& filename) const;
-
-
 protected:
-    /**
-     * @brief filename_ The path to the xml configuration file
-     */
+    /** The path to the xml configuration file. */
     QString filename_;
 
 private:
-    OptionsPtr options_;
-
     int totalScreenCountX_;
     int totalScreenCountY_;
     int screenWidth_;
@@ -182,9 +140,6 @@ private:
     int mullionWidth_;
     int mullionHeight_;
     bool fullscreen_;
-
-    QString backgroundUri_;
-    QColor backgroundColor_;
 
     void load();
 };

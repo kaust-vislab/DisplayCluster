@@ -41,6 +41,10 @@
 
 #include <QtGui>
 
+#ifdef __APPLE__
+#include "AppNapSuspender.h"
+#endif
+
 namespace dc
 {
 class Stream;
@@ -67,7 +71,7 @@ private slots:
 
     void shareDesktopUpdate();
 
-    void setCoordinates(int x, int y, int width, int height);
+    void setCoordinates(const QRect coordinates);
     void updateCoordinates();
 
 private:
@@ -76,29 +80,27 @@ private:
     DesktopSelectionWindow* desktopSelectionWindow_;
 
     /** @name User Interface Elements */
-    /*@{*/
+    //@{
     QLineEdit hostnameLineEdit_;
     QLineEdit uriLineEdit_;
     QSpinBox xSpinBox_;
     QSpinBox ySpinBox_;
     QSpinBox widthSpinBox_;
     QSpinBox heightSpinBox_;
-    QCheckBox retinaBox_;
     QSpinBox frameRateSpinBox_;
     QLabel frameRateLabel_;
 
-    QAction * shareDesktopAction_;
-    QAction * showDesktopSelectionWindowAction_;
-    /*@}*/
+    QAction* shareDesktopAction_;
+    QAction* showDesktopSelectionWindowAction_;
+    //@}
 
     /** @name Status */
-    /*@{*/
+    //@{
     int x_;
     int y_;
     int width_;
     int height_;
-    float deviceScale_;
-    /*@}*/
+    //@}
 
     QImage cursor_;
 
@@ -106,6 +108,10 @@ private:
 
     // used for frame rate calculations
     std::vector<QTime> frameSentTimes_;
+
+#ifdef __APPLE__
+    AppNapSuspender napSuspender_;
+#endif
 
     void setupUI();
     void generateCursorImage();

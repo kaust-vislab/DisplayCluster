@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
+/*                          Raphael Dumusc <raphael.dumusc@epfl.ch>  */
+/*                          Stefan.Eilemann@epfl.ch                  */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -40,7 +41,9 @@
 #ifndef DCIMAGESEGMENTER_H
 #define DCIMAGESEGMENTER_H
 
+#include <boost/function/function1.hpp>
 #include <vector>
+#include <dc/api.h>
 
 namespace dc
 {
@@ -60,35 +63,48 @@ struct ImageWrapper;
 class ImageSegmenter
 {
 public:
-    /**
-     * Construct an ImageSegmenter.
-     */
-    ImageSegmenter();
+    /** Construct an ImageSegmenter. */
+    DC_API ImageSegmenter();
+
+    /** Function called on each segment. */
+    typedef boost::function< bool( const PixelStreamSegment& ) > Handler;
 
     /**
-     * Segment an image.
+     * Generate segments.
+     *
+     * The generation might be parallelized, calling the handler function
+     * concurrently in multiple threads for different segments. When one handler
+     * fails, the remaining handlers may or may not be executed.
+     *
      * @param image The image to be segmented
-     * @return A collection of segments containing a copy of the source image data.
+     * @param handler the function to handle the generated segment.
+     * @return true if all image handlers returned true, false on failure
      * @see setNominalSegmentDimensions()
      */
-    PixelStreamSegments generateSegments(const ImageWrapper& image) const;
+    DC_API bool generate( const ImageWrapper& image,
+                          const Handler& handler ) const;
 
     /**
      * Set the nominal segment dimensions.
      *
-     * If both dimensions are non-zero, the images will be devided as many segments
-     * of the desired dimensions as possible. If the image size is not an exact multiple of
-     * the segement size, the remaining segments will be of size: image.size % nominalSize.
-     * @param nominalSegmentWidth The nominal width of the segments to generate (default: 0).
-     * @param nominalSegmentHeight The nominal height of the segments to generate (default: 0).
+     * If both dimensions are non-zero, the images will be devided as many
+     * segments of the desired dimensions as possible. If the image size is not
+     * an exact multiple of the segement size, the remaining segments will be of
+     * size: image.size % nominalSize.
+     *
+     * @param nominalSegmentWidth The nominal width of the segments to generate
+     *                            (default: 0).
+     * @param nominalSegmentHeight The nominal height of the segments to
+     *                             generate (default: 0).
      */
-    void setNominalSegmentDimensions(const unsigned int nominalSegmentWidth, const unsigned int nominalSegmentHeight);
+    DC_API void setNominalSegmentDimensions( const unsigned int nominalSegmentWidth,
+                                             const unsigned int nominalSegmentHeight );
 
 private:
     SegmentParameters generateSegmentParameters(const ImageWrapper &image) const;
 
-    PixelStreamSegments generateJpegSegments(const ImageWrapper& image) const;
-    PixelStreamSegments generateRawSegments(const ImageWrapper& image) const;
+    bool generateJpeg( const ImageWrapper& image, const Handler& handler) const;
+    bool generateRaw( const ImageWrapper& image, const Handler& handler ) const;
 
     unsigned int nominalSegmentWidth_;
     unsigned int nominalSegmentHeight_;

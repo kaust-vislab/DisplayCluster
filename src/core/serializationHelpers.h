@@ -39,11 +39,28 @@
 #ifndef SERIALIZATION_HELPERS_H
 #define SERIALIZATION_HELPERS_H
 
-#include <QtGui/QColor>
-#include <QtCore/QString>
+#include <QColor>
+#include <QString>
+#include <QRectF>
 
 #include <boost/serialization/nvp.hpp>
 #include <boost/serialization/split_free.hpp>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
+
+#define DECLARE_SERIALIZE_FOR_XML(className) \
+template<> \
+void className::serialize<>(boost::archive::xml_iarchive & ar, const unsigned int version); \
+template<> \
+void className::serialize<>(boost::archive::xml_oarchive & ar, const unsigned int version);
+
+#define IMPLEMENT_SERIALIZE_FOR_XML(className) \
+template<> \
+void className::serialize<>(boost::archive::xml_iarchive & ar, const unsigned int version) \
+{ serialize_for_xml(ar, version); } \
+template<> \
+void className::serialize<>(boost::archive::xml_oarchive & ar, const unsigned int version) \
+{ serialize_for_xml(ar, version); }
 
 namespace boost
 {
@@ -79,6 +96,24 @@ template< class Archive >
 void serialize( Archive& ar, QString& s, const unsigned int version )
 {
     boost::serialization::split_free( ar, s, version );
+}
+
+template< class Archive >
+void serialize( Archive& ar, QPointF& point, const unsigned int )
+{
+    qreal t;
+    t = point.x(); ar & make_nvp("x", t); point.setX(t);
+    t = point.y(); ar & make_nvp("y", t); point.setY(t);
+}
+
+template< class Archive >
+void serialize( Archive& ar, QRectF& rect, const unsigned int )
+{
+    qreal t;
+    t = rect.x(); ar & make_nvp("x", t); rect.setX(t);
+    t = rect.y(); ar & make_nvp("y", t); rect.setY(t);
+    t = rect.width(); ar & make_nvp("w", t); rect.setWidth(t);
+    t = rect.height(); ar & make_nvp("h", t); rect.setHeight(t);
 }
 
 }

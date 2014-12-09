@@ -37,31 +37,29 @@
 /*********************************************************************/
 
 #include "PixelStreamContent.h"
-#include "globals.h"
-#include "PixelStream.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
+#include "ContentWindow.h"
 #include <boost/serialization/export.hpp>
 #include "serializationHelpers.h"
+#include "Factories.h"
 
 BOOST_CLASS_EXPORT_GUID(PixelStreamContent, "PixelStreamContent")
+
+PixelStreamContent::PixelStreamContent(const QString& uri)
+    : Content(uri)
+{}
 
 CONTENT_TYPE PixelStreamContent::getType()
 {
     return CONTENT_TYPE_PIXEL_STREAM;
 }
 
-void PixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
+bool PixelStreamContent::readMetadata()
 {
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->getDimensions(width, height);
+    return true;
 }
 
-void PixelStreamContent::advance(ContentWindowManagerPtr)
+void PixelStreamContent::preRenderUpdate(Factories& factories, ContentWindowPtr window, WallToWallChannel& wallToWallChannel)
 {
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->preRenderUpdate();
-}
-
-void PixelStreamContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->render(tX, tY, tW, tH);
+    const QRectF& windowRect = window->getCoordinates();
+    factories.getPixelStreamFactory().getObject(getURI())->preRenderUpdate(windowRect, wallToWallChannel);
 }

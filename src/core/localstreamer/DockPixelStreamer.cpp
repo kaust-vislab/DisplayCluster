@@ -70,13 +70,13 @@ float DockPixelStreamer::getDefaultAspectRatio()
     return DOCK_ASPECT_RATIO;
 }
 
-DockPixelStreamer::DockPixelStreamer(const QSize& size, const QString& rootDir)
+DockPixelStreamer::DockPixelStreamer(const QSize& desiredDockSize, const QString& rootDir)
     : PixelStreamer()
     , flow_(new PictureFlow())
     , loader_(0)
     , toolbar_(0)
 {
-    const QSize& dockSize = constrainSize(size);
+    const QSize& dockSize = constrainSize(desiredDockSize);
 
     createFlow(dockSize);
     createToolbar(dockSize.width(), dockSize.height()*0.15);
@@ -97,25 +97,25 @@ DockPixelStreamer::~DockPixelStreamer()
     delete toolbar_;
 }
 
-void DockPixelStreamer::processEvent(Event event)
+void DockPixelStreamer::processEvent(Event evt)
 {
-    if (event.type == Event::EVT_CLICK)
+    if (evt.type == Event::EVT_CLICK)
     {
-        processClickEvent(event);
+        processClickEvent(evt);
     }
 
-    else if (event.type == Event::EVT_MOVE || event.type == Event::EVT_WHEEL)
+    else if (evt.type == Event::EVT_MOVE || evt.type == Event::EVT_WHEEL)
     {
-        const int offs = event.dx * flow_->size().width() * COVERFLOW_SPEED_FACTOR;
+        const int offs = evt.dx * flow_->size().width() * COVERFLOW_SPEED_FACTOR;
         flow_->showSlide( flow_->centerIndex() - offs );
     }
 }
 
-void DockPixelStreamer::processClickEvent(const Event& event)
+void DockPixelStreamer::processClickEvent(const Event& clickEvent)
 {
     // click position in pixel units inside the dock
-    const int xPos = event.mouseX * flow_->size().width();
-    const int yPos = event.mouseY * flow_->size().height();
+    const int xPos = clickEvent.mouseX * flow_->size().width();
+    const int yPos = clickEvent.mouseY * flow_->size().height();
 
     // mid is half the width of the dock in (pixel) units
     const int dockHalfWidth = flow_->size().width() / 2;
@@ -335,30 +335,30 @@ void DockPixelStreamer::addFoldersToFlow()
     }
 }
 
-QSize DockPixelStreamer::getMinSize() const
+QSize DockPixelStreamer::getMinSize()
 {
     const float dockHeight = SLIDE_MIN_SIZE / SLIDE_REL_HEIGHT_FACTOR;
     const float dockWidth = dockHeight / getDefaultAspectRatio();
     return QSize( dockWidth, dockHeight );
 }
 
-QSize DockPixelStreamer::getMaxSize() const
+QSize DockPixelStreamer::getMaxSize()
 {
     const float dockHeight = SLIDE_MAX_SIZE / SLIDE_REL_HEIGHT_FACTOR;
     const float dockWidth = dockHeight / getDefaultAspectRatio();
     return QSize( dockWidth, dockHeight );
 }
 
-QSize DockPixelStreamer::constrainSize(const QSize& size) const
+QSize DockPixelStreamer::constrainSize(const QSize& targetSize)
 {
     QSize minSize = getMinSize();
     QSize maxSize = getMaxSize();
 
-    if (size.width() < minSize.width() || size.height() < minSize.height())
+    if (targetSize.width() < minSize.width() || targetSize.height() < minSize.height())
         return minSize;
 
-    if (size.width() > maxSize.width() || size.height() > maxSize.height())
+    if (targetSize.width() > maxSize.width() || targetSize.height() > maxSize.height())
         return maxSize;
 
-    return size;
+    return targetSize;
 }

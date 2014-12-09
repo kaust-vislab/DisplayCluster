@@ -44,8 +44,8 @@
 
 #include "log.h"
 
-WebServiceServer::WebServiceServer(const unsigned int port, QObject *parent)
-    : QThread(parent)
+WebServiceServer::WebServiceServer(const unsigned int port, QObject *parentObject)
+    : QThread(parentObject)
     , server_(new dcWebservice::Server())
     , port_(port)
 {}

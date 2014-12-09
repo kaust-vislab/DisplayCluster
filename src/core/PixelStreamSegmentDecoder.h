@@ -41,6 +41,7 @@
 #define PIXELSTREAMSEGMENTDECODER_H
 
 #include <QFuture>
+#include <boost/noncopyable.hpp>
 
 namespace dc
 {
@@ -53,7 +54,7 @@ class ImageJpegDecompressor;
 /**
  * Decode a PixelStreamSegment image data asynchronously.
  */
-class PixelStreamSegmentDecoder
+class PixelStreamSegmentDecoder : public boost::noncopyable
 {
 public:
     /** Construct a Decoder */

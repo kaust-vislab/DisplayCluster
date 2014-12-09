@@ -60,10 +60,10 @@ class TextInputHandler : public QObject, public dcWebservice::Handler
 public:
     /**
      * Handle TextInput requests.
-     * @param displayGroupManagerAdapter An adapter over the displayGroupManager,
-     * used for unit testing. If provided, the class takes ownership of it.
+     * @param displayGroupAdapter An adapter over the displayGroup, used for
+     *        unit testing. If provided, the class takes ownership of it.
      */
-    TextInputHandler(DisplayGroupManagerAdapterPtr displayGroupManagerAdapter);
+    TextInputHandler(DisplayGroupAdapterPtr displayGroupAdapter);
 
     /** Destructor */
     virtual ~TextInputHandler();
@@ -73,7 +73,7 @@ public:
      * @param request A valid dcWebservice::Request object.
      * @return A valid Response object.
      */
-    virtual dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const;
+    dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const override;
 
 signals:
     /**
@@ -83,7 +83,7 @@ signals:
     void receivedKeyInput(char key) const;
 
 private:
-    DisplayGroupManagerAdapterPtr displayGroupManagerAdapter_;
+    DisplayGroupAdapterPtr displayGroupAdapter_;
 };
 
 #endif // TEXTINPUTHANDLER_H

@@ -52,8 +52,8 @@
 #define DC_STREAM_HOST_ADDRESS "localhost"
 //#define COMPRESS_IMAGES
 
-Application::Application(int &argc, char **argv)
-    : QApplication(argc, argv)
+Application::Application(int &argc_, char **argv_)
+    : QApplication(argc_, argv_)
     , pixelStreamer_(0)
     , dcStream_(0)
 {

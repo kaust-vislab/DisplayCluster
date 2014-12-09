@@ -47,10 +47,10 @@ class PDFContent;
 class PDFInteractionDelegate : public ZoomInteractionDelegate
 {
 public:
-    PDFInteractionDelegate(ContentWindowManager& contentWindow);
+    PDFInteractionDelegate(ContentWindow& contentWindow);
 
-    virtual void tap(QTapGesture *gesture);
-    virtual void swipe(QSwipeGesture *gesture);
+    void tap(QTapGesture *gesture) override;
+    void swipe(QSwipeGesture *gesture) override;
 
 private:
     PDFContent* getPDFContent();

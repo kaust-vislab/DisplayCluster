@@ -62,15 +62,17 @@ public:
     static QString getUniqueURI();
     static float getDefaultAspectRatio();
 
-    DockPixelStreamer(const QSize& size, const QString& rootDir);
+    DockPixelStreamer(const QSize& desiredDockSize, const QString& rootDir);
     ~DockPixelStreamer();
 
-    virtual QSize size() const;
+    QSize size() const override;
 
     bool setRootDir(const QString& dir);
 
+    static QSize constrainSize(const QSize& targetSize);
+
 public slots:
-    virtual void processEvent(Event event);
+    void processEvent(Event evt) override;
 
 private slots:
     void update(const QImage &image);
@@ -99,16 +101,15 @@ private:
     void createToolbar(const unsigned int width, const unsigned int height);
     void createImageLoader();
 
-    void processClickEvent(const Event& event);
+    void processClickEvent(const Event& clickEvent);
     void onItem();
     void changeDirectory( const QString& dir );
     void addRootDirToFlow();
     void addFilesToFlow();
     void addFoldersToFlow();
 
-    QSize getMinSize() const;
-    QSize getMaxSize() const;
-    QSize constrainSize(const QSize& size) const;
+    static QSize getMinSize();
+    static QSize getMaxSize();
 };
 
 #endif // DOCKPIXELSTREAMER_H

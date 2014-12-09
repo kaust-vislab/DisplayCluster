@@ -71,9 +71,9 @@ DesktopSelectionView* DesktopSelectionWindow::getDesktopSelectionView()
     return desktopSelectionView_;
 }
 
-void DesktopSelectionWindow::hideEvent(QHideEvent * event)
+void DesktopSelectionWindow::hideEvent(QHideEvent * hideEvt)
 {
-    QWidget::hideEvent(event);
+    QWidget::hideEvent(hideEvt);
 
     emit windowVisible(false);
 }

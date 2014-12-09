@@ -41,6 +41,7 @@
 #define DCIMAGEWRAPPER_H
 
 #include <cstddef>
+#include <dc/api.h>
 
 namespace dc
 {
@@ -65,7 +66,7 @@ enum CompressionPolicy {
  * It also contains fields to indicate if the image should be compressed for sending (disabled by default).
  * @version 1.0
  */
-struct ImageWrapper
+struct DC_API ImageWrapper
 {
     /**
      * ImageWrapper constructor
@@ -91,25 +92,25 @@ struct ImageWrapper
     const void* const data;
 
     /** @name Dimensions */
-    /*@{*/
+    //@{
     const unsigned int width;   /**< The image width in pixels. @version 1.0 */
     const unsigned int height;  /**< The image height in pixels. @version 1.0 */
-    /*@}*/
+    //@}
 
     /** The pixel format describing the arrangement of the data buffer. @version 1.0 */
     const PixelFormat pixelFormat;
 
     /** @name Position of the image in the stream */
-    /*@{*/
+    //@{
     const unsigned int x;  /**< The X coordinate. @version 1.0 */
     const unsigned int y;  /**< The Y coordinate. @version 1.0 */
-    /*@}*/
+    //@}
 
     /** @name Compression parameters */
-    /*@{*/
+    //@{
     CompressionPolicy compressionPolicy;  /**< Is the image to be compressed (default: auto). @version 1.0 */
     unsigned int compressionQuality;      /**< Compression quality (0 worst, 100 best, default: 75). @version 1.0 */
-    /*@}*/
+    //@}
 
     /** @return The number of bytes per pixel based on the pixelFormat. @version 1.0 */
     unsigned int getBytesPerPixel() const;

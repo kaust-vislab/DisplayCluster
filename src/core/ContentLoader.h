@@ -47,7 +47,7 @@
 #include <QSizeF>
 
 /**
- * Helper class to open Content on a DisplayGroupManager.
+ * Helper class to open Content on a DisplayGroup.
  */
 class ContentLoader
 {
@@ -55,35 +55,26 @@ public:
     /**
      * Constructor.
      *
-     * @param displayGroupManager The target DisplayGroupManager for displaying the content.
+     * @param displayGroup The target DisplayGroup for displaying the content.
      */
-    ContentLoader(DisplayGroupManagerPtr displayGroupManager);
+    ContentLoader(DisplayGroupPtr displayGroup);
 
     /**
      * Load a Content from a file and create a window for it.
      *
      * @param filename The content file to open.
-     * @param windowPosition The point around which to center the window. If empty (default), the
-     *        window is automatically centered on the displayWall.
-     * @param windowSize The size of the window. If empty, the size of the window is automatically
-     *        adjusted to its content dimensions.
+     * @param windowCenterPosition The point around which to center the window.
+     *        If empty (default), the  window is automatically centered on the
+     *        displayWall.
+     * @param windowSize The size of the window. If empty, the size of the
+     *        window is automatically adjusted to its content dimensions.
      * @return true if operation was successful, false otherwise.
      */
     bool load(const QString& filename, const QPointF& windowCenterPosition = QPointF(),
               const QSizeF& windowSize = QSizeF());
 
-    /**
-     * Load a Content from a file and create a window for it.
-     *
-     * Convienience overload to center the Content's window above another window.
-     * @param filename The content file to open.
-     * @param parentWindowUri The identifier of the window above which to center the content.
-     * @return true if operation was successful, false otherwise.
-     */
-    bool load(const QString& filename, const QString& parentWindowUri);
-
 private:
-    DisplayGroupManagerPtr displayGroupManager_;
+    DisplayGroupPtr displayGroup_;
 };
 
 

@@ -45,7 +45,7 @@
 #include <QImage>
 #include "types.h"
 
-class ContentWindowManager;
+class ContentWindow;
 
 /**
  * A state preview is a thumbnail image saved alongside a state file.
@@ -55,8 +55,14 @@ class ContentWindowManager;
 class StatePreview
 {
 public:
-    StatePreview(const QString& dcxFileName);
+    /**
+     * Constructor.
+     * @param dcxFileName The state file associated with this preview image.
+     *        Needed by loadFromFile() and saveToFile().
+     */
+    StatePreview( const QString& dcxFileName );
 
+    /** Get the file extension used for state images. */
     static QString getFileExtension();
 
     /**
@@ -65,19 +71,25 @@ public:
     bool loadFromFile();
 
     /**
-     * Retrieve the image loaded with loadFromFile() or generated with generateImage().
+     * Retrieve the image loaded with loadFromFile() or generated with
+     * generateImage().
      */
     QImage getImage() const;
 
     /**
-     * Generate the preview image from a list of ContentWindowManagers.
-     * @param wallDimensions the total dimensions of the wall in pixels, used to position the contents
-     * @param contentWindowManagers the contents to include in the preview
+     * Generate the preview image from a list of ContentWindows.
+     * @param wallDimensions the total dimensions of the wall in pixels, used to
+     *        position the contents.
+     * @param contentWindows the contents to include in the preview.
      */
-    void generateImage(const QSize& wallDimensions, const ContentWindowManagerPtrs& contentWindowManagers);
+    void generateImage( const QSize& wallDimensions,
+                        const ContentWindowPtrs& contentWindows );
 
     /**
-     * Save the thumbnail created by generateImage() to a file based on the state file name.
+     * Save the thumbnail created by generateImage() to a file.
+     * The filename is the same as the state filename but uses a different
+     * extension.
+     * @see getFileExtension()
      */
     bool saveToFile() const;
 

@@ -1,245 +1,298 @@
 
-include_directories(SYSTEM ${OPENGL_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIR})
-list(APPEND CORE_LIBRARY_LIBS ${OPENGL_LIBRARIES} ${FFMPEG_LIBRARIES})
+# Copyright (c) 2013-2014, EPFL/Blue Brain Project
+#                     Raphael Dumusc <raphael.dumusc@epfl.ch>
 
-list(APPEND CORE_LIBRARY_LIBS ${MPI_CXX_LIBRARIES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-list(APPEND CORE_LIBRARY_LIBS ${QT_LIBRARIES})
-list(APPEND CORE_LIBRARY_LIBS ${LibJpegTurbo_LIBRARIES})
-list(APPEND CORE_LIBRARY_LIBS ${Boost_LIBRARIES})
+set(DCCORE_LINK_LIBRARIES
+  dcwebservice
+  ${Boost_LIBRARIES}
+  ${QT_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+  ${FFMPEG_LIBRARIES}
+  ${MPI_CXX_LIBRARIES}
+  ${LibJpegTurbo_LIBRARIES}
+)
 
-#OpenMP
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-
-# FastCGI WebService
-list(APPEND CORE_LIBRARY_LIBS dcwebservice)
-
-# handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
-  list(APPEND CORE_LIBRARY_LIBS ${TUIO_LIBRARIES})
-
-  list(APPEND SRCS MultiTouchListener.cpp
-                   TouchListener.cpp)
+  list(APPEND DCCORE_MOC_HEADERS MultiTouchListener.h)
+  list(APPEND DCCORE_SOURCES MultiTouchListener.cpp)
+  list(APPEND DCCORE_LINK_LIBRARIES ${TUIO_LIBRARIES})
 
   find_package(X11 REQUIRED)
   include_directories(${X11_INCLUDE_DIR})
-  list(APPEND CORE_LIBRARY_LIBS ${X11_LIBRARIES})
-endif()
-
-if(ENABLE_JOYSTICK_SUPPORT)
-  find_package(SDL REQUIRED)
-  include_directories(${SDL_INCLUDE_DIR})
-  list(APPEND CORE_LIBRARY_LIBS ${SDL_LIBRARY})
-
-  set(SRCS ${SRCS} JoystickThread.cpp)
-  set(SRCS ${SRCS} DisplayGroupJoystick.cpp)
-
-  set(MOC_HEADERS ${MOC_HEADERS} JoystickThread.h)
-endif()
-
-if(ENABLE_SKELETON_SUPPORT)
-  find_package(OpenNI REQUIRED)
-  include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
-  list(APPEND CORE_LIBRARY_LIBS ${OpenNI_LIBRARIES})
-
-  list(APPEMD SRCS
-    SkeletonThread.cpp
-    SkeletonSensor.cpp
-    SkeletonState.cpp)
-
-  if(NOT ENABLE_JOYSTICK_SUPPORT)
-    list(APPEMD SRCS DisplayGroupJoystick.cpp)
-  endif()
-
-  set(MOC_HEADERS ${MOC_HEADERS} SkeletonThread.h)
-endif()
-
-if(ENABLE_PYTHON_SUPPORT)
-    find_package(PythonLibs REQUIRED)
-    include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
-    include_directories(${PYTHON_INCLUDE_DIRS})
-    list(APPEND CORE_LIBRARY_LIBS ${PYTHON_LIBRARIES})
-
-    find_package(PythonQt REQUIRED)
-    include_directories(${PythonQt_INCLUDE_DIRS})
-    list(APPEND CORE_LIBRARY_LIBS ${PythonQt_LIBRARIES})
-
-    set(SRCS ${SRCS} DisplayGroupPython.cpp)
-    set(SRCS ${SRCS} PythonConsole.cpp)
-
-    set(MOC_HEADERS ${MOC_HEADERS} DisplayGroupPython.h)
-    set(MOC_HEADERS ${MOC_HEADERS} PythonConsole.h)
+  list(APPEND DCCORE_LINK_LIBRARIES ${X11_LIBRARIES})
 endif()
 
 if(ENABLE_PDF_SUPPORT)
-  list(APPEND CORE_LIBRARY_LIBS ${POPPLER_LIBRARIES})
-
-  list(APPEND SRCS
+  list(APPEND DCCORE_MOC_HEADERS
+    PDFContent.h
+  )
+  list(APPEND DCCORE_SOURCES
     PDF.cpp
     PDFContent.cpp
     PDFInteractionDelegate.cpp
     thumbnail/PDFThumbnailGenerator.cpp
   )
-  list(APPEND MOC_HEADERS
-    PDFContent.h
-  )
+  list(APPEND DCCORE_LINK_LIBRARIES ${POPPLER_LIBRARIES})
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-list(APPEND SRCS
-    BackgroundWidget.cpp
-    Command.cpp
-    CommandHandler.cpp
-    CommandType.cpp
-    Content.cpp
-    ContentFactory.cpp
-    ContentLoader.cpp
-    ContentType.cpp
-    ContentInteractionDelegate.cpp
-    ContentWindowManager.cpp
-    ContentWindowInterface.cpp
-    ContentWindowGraphicsItem.cpp
-    ContentWindowListWidgetItem.cpp
-    Marker.cpp
-    DisplayGroupManager.cpp
-    DisplayGroupInterface.cpp
-    DisplayGroupGraphicsScene.cpp
-    DisplayGroupGraphicsViewProxy.cpp
-    DisplayGroupGraphicsView.cpp
-    DisplayGroupListWidgetProxy.cpp
-    DynamicTexture.cpp
-    DynamicTextureContent.cpp
-    FactoryObject.cpp
-    FileCommandHandler.cpp
-    FpsCounter.cpp
-    GLWindow.cpp
-    globals.cpp
-    gestures/DoubleTapGestureRecognizer.cpp
-    gestures/PanGesture.cpp
-    gestures/PanGestureRecognizer.cpp
-    gestures/PinchGesture.cpp
-    gestures/PinchGestureRecognizer.cpp
-    ../Event.cpp
-    ../log.cpp
-    ../MessageHeader.cpp
-    ImageJpegDecompressor.cpp
-    MainWindow.cpp
-    Movie.cpp
-    MovieContent.cpp
-    NetworkListener.cpp
-    NetworkListenerThread.cpp
-    Options.cpp
-    PixelStream.cpp
-    PixelStreamBuffer.cpp
-    PixelStreamContent.cpp
-    PixelStreamDispatcher.cpp
-    PixelStreamInteractionDelegate.cpp
-    PixelStreamSegmentDecoder.cpp
-    PixelStreamSegmentRenderer.cpp
-    SessionCommandHandler.cpp
-    State.cpp
-    StatePreview.cpp
-    StateSerializationHelper.cpp
-    SVG.cpp
-    SVGContent.cpp
-    Texture.cpp
-    TextureContent.cpp
-    WebbrowserCommandHandler.cpp
-    ZoomInteractionDelegate.cpp
-    configuration/Configuration.cpp
-    configuration/MasterConfiguration.cpp
-    configuration/WallConfiguration.cpp
-    localstreamer/AsyncImageLoader.cpp
-    localstreamer/CommandLineOptions.cpp
-    localstreamer/DockPixelStreamer.cpp
-    localstreamer/DockToolbar.cpp
-    localstreamer/PixelStreamer.cpp
-    localstreamer/PixelStreamerFactory.cpp
-    localstreamer/PixelStreamerLauncher.cpp
-    localstreamer/PixelStreamerType.cpp
-    localstreamer/Pictureflow.cpp
-    localstreamer/WebkitAuthenticationHelper.cpp
-    localstreamer/WebkitHtmlSelectReplacer.cpp
-    localstreamer/WebkitPixelStreamer.cpp
-    thumbnail/DefaultThumbnailGenerator.cpp
-    thumbnail/FolderThumbnailGenerator.cpp
-    thumbnail/ImageThumbnailGenerator.cpp
-    thumbnail/MovieThumbnailGenerator.cpp
-    thumbnail/PyramidThumbnailGenerator.cpp
-    thumbnail/StateThumbnailGenerator.cpp
-    thumbnail/ThumbnailGenerator.cpp
-    thumbnail/ThumbnailGeneratorFactory.cpp
-    ws/AsciiToQtKeyCodeMapper.cpp
-    ws/DisplayGroupManagerAdapter.cpp
-    ws/TextInputDispatcher.cpp
-    ws/TextInputHandler.cpp
-    ws/WebServiceServer.cpp
+list(APPEND DCCORE_PUBLIC_HEADERS
+  ${COMMON_INCLUDES}
+  Command.h
+  CommandHandler.h
+  CommandType.h
+  Content.h
+  ContentFactory.h
+  ContentLoader.h
+  ContentType.h
+  ContentInteractionDelegate.h
+  ContentWindow.h
+  ContentWindowRenderer.h
+  DisplayGroup.h
+  DisplayGroupRenderer.h
+  DynamicTexture.h
+  DynamicTextureContent.h
+  ElapsedTimer.h
+  Factory.hpp
+  Factories.h
+  FactoryObject.h
+  FFMPEGMovie.h
+  FFMPEGVideoFrameConverter.h
+  FileCommandHandler.h
+  FpsCounter.h
+  FpsRenderer.h
+  GLQuad.h
+  GLTexture2D.h
+  GLWindow.h
+  globals.h
+  gestures/DoubleTapGestureRecognizer.h
+  gestures/PanGesture.h
+  gestures/PanGestureRecognizer.h
+  gestures/PinchGesture.h
+  gestures/PinchGestureRecognizer.h
+  ImageJpegDecompressor.h
+  Marker.h
+  Markers.h
+  MarkerRenderer.h
+  MasterFromWallChannel.h
+  MasterToWallChannel.h
+  Movie.h
+  MovieContent.h
+  MPIChannel.h
+  MPIContext.h
+  NetworkListener.h
+  NetworkListenerThread.h
+  Options.h
+  PixelStream.h
+  PixelStreamBuffer.h
+  PixelStreamContent.h
+  PixelStreamDispatcher.h
+  PixelStreamInteractionDelegate.h
+  PixelStreamSegmentDecoder.h
+  PixelStreamSegmentRenderer.h
+  PixelStreamWindowManager.h
+  RenderContext.h
+  RenderController.h
+  SessionCommandHandler.h
+  State.h
+  StatePreview.h
+  StateSerializationHelper.h
+  SVG.h
+  SVGContent.h
+  TestPattern.h
+  Texture.h
+  TextureContent.h
+  WallFromMasterChannel.h
+  WallToMasterChannel.h
+  WallToWallChannel.h
+  WebbrowserCommandHandler.h
+  ZoomInteractionDelegate.h
+  configuration/Configuration.h
+  configuration/MasterConfiguration.h
+  configuration/WallConfiguration.h
+  localstreamer/AsyncImageLoader.h
+  localstreamer/CommandLineOptions.h
+  localstreamer/DockPixelStreamer.h
+  localstreamer/DockToolbar.h
+  localstreamer/PixelStreamer.h
+  localstreamer/PixelStreamerFactory.h
+  localstreamer/PixelStreamerLauncher.h
+  localstreamer/PixelStreamerType.h
+  localstreamer/Pictureflow.h
+  localstreamer/WebkitAuthenticationHelper.h
+  localstreamer/WebkitHtmlSelectReplacer.h
+  localstreamer/WebkitPixelStreamer.h
+  thumbnail/DefaultThumbnailGenerator.h
+  thumbnail/FolderThumbnailGenerator.h
+  thumbnail/ImageThumbnailGenerator.h
+  thumbnail/MovieThumbnailGenerator.h
+  thumbnail/PyramidThumbnailGenerator.h
+  thumbnail/StateThumbnailGenerator.h
+  thumbnail/ThumbnailGenerator.h
+  thumbnail/ThumbnailGeneratorFactory.h
+  ws/AsciiToQtKeyCodeMapper.h
+  ws/DisplayGroupAdapter.h
+  ws/TextInputDispatcher.h
+  ws/TextInputHandler.h
+  ws/WebServiceServer.h
 )
 
-list(APPEND MOC_HEADERS
-    BackgroundWidget.h
-    CommandHandler.h
-    Content.h
-    ContentWindowInterface.h
-    DisplayGroupManager.h
-    DisplayGroupInterface.h
-    DisplayGroupGraphicsView.h
-    DisplayGroupGraphicsViewProxy.h
-    DisplayGroupListWidgetProxy.h
-    EventReceiver.h
-    MainWindow.h
-    Marker.h
-    NetworkListener.h
-    NetworkListenerThread.h
-    Options.h
-    PixelStreamDispatcher.h
-    WebbrowserCommandHandler.h
-    localstreamer/AsyncImageLoader.h
-    localstreamer/DockPixelStreamer.h
-    localstreamer/PixelStreamer.h
-    localstreamer/PixelStreamerLauncher.h
-    localstreamer/Pictureflow.h
-    localstreamer/WebkitAuthenticationHelper.h
-    localstreamer/WebkitHtmlSelectReplacer.h
-    localstreamer/WebkitPixelStreamer.h
-    ws/TextInputDispatcher.h
-    ws/TextInputHandler.h
-    ws/WebServiceServer.h
+list(APPEND DCCORE_MOC_HEADERS
+  CommandHandler.h
+  Content.h
+  ContentWindow.h
+  DisplayGroup.h
+  DisplayGroupRenderer.h
+  EventReceiver.h
+  Factories.h
+  Markers.h
+  MarkerRenderer.h
+  MasterFromWallChannel.h
+  MasterToWallChannel.h
+  NetworkListener.h
+  NetworkListenerThread.h
+  Options.h
+  PixelStream.h
+  PixelStreamDispatcher.h
+  PixelStreamWindowManager.h
+  RenderController.h
+  WallFromMasterChannel.h
+  WallToMasterChannel.h
+  WallToWallChannel.h
+  WebbrowserCommandHandler.h
+  localstreamer/AsyncImageLoader.h
+  localstreamer/DockPixelStreamer.h
+  localstreamer/PixelStreamer.h
+  localstreamer/PixelStreamerLauncher.h
+  localstreamer/Pictureflow.h
+  localstreamer/WebkitAuthenticationHelper.h
+  localstreamer/WebkitHtmlSelectReplacer.h
+  localstreamer/WebkitPixelStreamer.h
+  ws/TextInputDispatcher.h
+  ws/TextInputHandler.h
+  ws/WebServiceServer.h
 )
 
-# Qt resource file
-SET( CORE_RC
-   resources/core.qrc
+list(APPEND DCCORE_SOURCES
+  ${COMMON_SOURCES}
+  ${DISPLAYCLUSTER_SHARED_SOURCES}
+  Command.cpp
+  CommandHandler.cpp
+  CommandType.cpp
+  Content.cpp
+  ContentFactory.cpp
+  ContentLoader.cpp
+  ContentType.cpp
+  ContentInteractionDelegate.cpp
+  ContentWindow.cpp
+  ContentWindowRenderer.cpp
+  DisplayGroup.cpp
+  DisplayGroupRenderer.cpp
+  DynamicTexture.cpp
+  DynamicTextureContent.cpp
+  ElapsedTimer.cpp
+  Factory.hpp
+  Factories.cpp
+  FactoryObject.cpp
+  FFMPEGMovie.cpp
+  FFMPEGVideoFrameConverter.cpp
+  FileCommandHandler.cpp
+  FpsCounter.cpp
+  FpsRenderer.cpp
+  GLQuad.cpp
+  GLTexture2D.cpp
+  GLWindow.cpp
+  globals.cpp
+  ImageJpegDecompressor.cpp
+  Marker.cpp
+  Markers.cpp
+  MarkerRenderer.cpp
+  MasterFromWallChannel.cpp
+  MasterToWallChannel.cpp
+  MetaTypeRegistration.cpp
+  Movie.cpp
+  MovieContent.cpp
+  MPIChannel.cpp
+  MPIContext.cpp
+  NetworkListener.cpp
+  NetworkListenerThread.cpp
+  Options.cpp
+  PixelStream.cpp
+  PixelStreamBuffer.cpp
+  PixelStreamContent.cpp
+  PixelStreamDispatcher.cpp
+  PixelStreamInteractionDelegate.cpp
+  PixelStreamSegmentDecoder.cpp
+  PixelStreamSegmentRenderer.cpp
+  PixelStreamWindowManager.cpp
+  RenderContext.cpp
+  RenderController.cpp
+  SessionCommandHandler.cpp
+  State.cpp
+  StatePreview.cpp
+  StateSerializationHelper.cpp
+  SVG.cpp
+  SVGContent.cpp
+  TestPattern.cpp
+  Texture.cpp
+  TextureContent.cpp
+  WallFromMasterChannel.cpp
+  WallToMasterChannel.cpp
+  WallToWallChannel.cpp
+  WebbrowserCommandHandler.cpp
+  ZoomInteractionDelegate.cpp
+  configuration/Configuration.cpp
+  configuration/MasterConfiguration.cpp
+  configuration/WallConfiguration.cpp
+  gestures/DoubleTapGestureRecognizer.cpp
+  gestures/PanGesture.cpp
+  gestures/PanGestureRecognizer.cpp
+  gestures/PinchGesture.cpp
+  gestures/PinchGestureRecognizer.cpp
+  localstreamer/AsyncImageLoader.cpp
+  localstreamer/CommandLineOptions.cpp
+  localstreamer/DockPixelStreamer.cpp
+  localstreamer/DockToolbar.cpp
+  localstreamer/PixelStreamer.cpp
+  localstreamer/PixelStreamerFactory.cpp
+  localstreamer/PixelStreamerLauncher.cpp
+  localstreamer/PixelStreamerType.cpp
+  localstreamer/Pictureflow.cpp
+  localstreamer/WebkitAuthenticationHelper.cpp
+  localstreamer/WebkitHtmlSelectReplacer.cpp
+  localstreamer/WebkitPixelStreamer.cpp
+  thumbnail/DefaultThumbnailGenerator.cpp
+  thumbnail/FolderThumbnailGenerator.cpp
+  thumbnail/ImageThumbnailGenerator.cpp
+  thumbnail/MovieThumbnailGenerator.cpp
+  thumbnail/PyramidThumbnailGenerator.cpp
+  thumbnail/StateThumbnailGenerator.cpp
+  thumbnail/ThumbnailGenerator.cpp
+  thumbnail/ThumbnailGeneratorFactory.cpp
+  ws/AsciiToQtKeyCodeMapper.cpp
+  ws/DisplayGroupAdapter.cpp
+  ws/TextInputDispatcher.cpp
+  ws/TextInputHandler.cpp
+  ws/WebServiceServer.cpp
 )
-# this command will generate rules that will run rcc on all files from SAMPLE_RCS
-# in result SAMPLE_RC_SRCS variable will contain paths to files produced by rcc
-QT4_ADD_RESOURCES( CORE_RC_SRCS ${CORE_RC} )
+
+set(DCCORE_RESOURCES resources/core.qrc)
 
 # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
-qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+qt4_wrap_cpp(MOC_OUTFILES ${DCCORE_MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+qt4_add_resources(QRC_SOURCES ${DCCORE_RESOURCES})
 
-add_library(dccore SHARED ${SRCS} ${MOC_OUTFILES} ${CORE_RC_SRCS} ${DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS})
-target_link_libraries(dccore ${CORE_LIBRARY_LIBS})
+add_library(dccore SHARED ${DCCORE_SOURCES} ${MOC_OUTFILES} ${QRC_SOURCES})
+target_link_libraries(dccore ${DCCORE_LINK_LIBRARIES})
 set_target_properties(dccore PROPERTIES
-  VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME dccore)
+  VERSION ${VERSION} SOVERSION ${VERSION_ABI})
+
 install(TARGETS dccore
     ARCHIVE DESTINATION lib COMPONENT dev
-    RUNTIME DESTINATION bin COMPONENT lib
-    LIBRARY DESTINATION lib COMPONENT lib)
+    RUNTIME DESTINATION bin COMPONENT core
+    LIBRARY DESTINATION lib COMPONENT core
+)
 
-# build Python module if Python support is enabled
-if(ENABLE_PYTHON_SUPPORT)
-    add_custom_command(TARGET displaycluster POST_BUILD
-        COMMENT "Building Python module"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-        COMMAND python configure.py -I ${Boost_INCLUDE_DIRS}
-        COMMAND make
-        COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
-endif()
-
-# install Python module
-if(ENABLE_PYTHON_SUPPORT)
-  install(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python COMPONENT lib)
-endif()
+install(FILES ${DCCORE_PUBLIC_HEADERS} ${DCCORE_MOC_HEADERS}
+  DESTINATION include/dc/core COMPONENT dev)

@@ -37,19 +37,40 @@
 /*********************************************************************/
 
 #include "MovieContent.h"
-#include "globals.h"
-#include "Movie.h"
-#include "ContentWindowManager.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
-#include <boost/serialization/export.hpp>
-#include "serializationHelpers.h"
 
+#include "Movie.h"
+#include "FFMPEGMovie.h"
+#include "ContentWindow.h"
+#include "RenderContext.h"
+#include "Factories.h"
+#include "WallToWallChannel.h"
+
+#include "serializationHelpers.h"
+#include <boost/serialization/export.hpp>
 BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
+
+MovieContent::MovieContent(const QString& uri)
+    : Content(uri)
+{
+}
 
 CONTENT_TYPE MovieContent::getType()
 {
     return CONTENT_TYPE_MOVIE;
+}
+
+bool MovieContent::readMetadata()
+{
+    QFileInfo file( getURI( ));
+    if (!file.exists() || !file.isReadable())
+        return false;
+
+    const FFMPEGMovie movie(getURI());
+    if (!movie.isValid())
+        return false;
+
+    size_ = QSize( movie.getWidth(), movie.getHeight());
+    return true;
 }
 
 const QStringList& MovieContent::getSupportedExtensions()
@@ -64,30 +85,32 @@ const QStringList& MovieContent::getSupportedExtensions()
     return extensions;
 }
 
-void MovieContent::getFactoryObjectDimensions(int &width, int &height)
+void MovieContent::preRenderUpdate(Factories& factories, ContentWindowPtr window, WallToWallChannel &wallToWallChannel)
 {
-    g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);
-}
-
-void MovieContent::advance(ContentWindowManagerPtr window)
-{
+    // Stop decoding when the window is moving.
+    // This is to avoid saccades when reaching a new GLWindow.
+    // The decoding resumes when the movement is finished.
     if( blockAdvance_ )
         return;
 
-    // window parameters
-    double x, y, w, h;
-    window->getCoordinates(x, y, w, h);
+    boost::shared_ptr< Movie > movie = factories.getMovieFactory().getObject(getURI());
 
-    // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
-    const bool skip = !g_mainWindow->isRegionVisible(x, y, w, h);
-
-    boost::shared_ptr< Movie > movie = g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI());
     movie->setPause( window->getControlState() & STATE_PAUSED );
     movie->setLoop( window->getControlState() & STATE_LOOP );
-    movie->nextFrame(skip);
+
+    const RenderContext* renderContext = movie->getRenderContext();
+    movie->setVisible(renderContext->isRegionVisible(window->getCoordinates()));
+
+    movie->preRenderUpdate( wallToWallChannel );
 }
 
-void MovieContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+void MovieContent::postRenderUpdate(Factories& factories, ContentWindowPtr, WallToWallChannel& wallToWallChannel)
 {
-    g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->render(tX, tY, tW, tH);
+    // Stop decoding when the window is moving to avoid saccades when reaching a new GLWindow
+    // The decoding resumes when the movement is finished
+    if( blockAdvance_ )
+        return;
+
+    boost::shared_ptr< Movie > movie = factories.getMovieFactory().getObject(getURI());
+    movie->postRenderUpdate( wallToWallChannel );
 }

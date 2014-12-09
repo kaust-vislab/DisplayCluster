@@ -50,10 +50,10 @@ public:
 
     virtual void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
 
-    void setCoordinates(int x, int y, int width, int height);
+    void setCoordinates(QRect coordinates);
 
 signals:
-    void coordinatesChanged(int x, int y, int width, int height);
+    void coordinatesChanged(QRect coordinates);
 
 protected:
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
@@ -65,7 +65,7 @@ private:
 
     bool resizing_;
 
-    int x_, y_, width_, height_;
+    QRect coordinates_;
 };
 
 #endif

@@ -41,8 +41,12 @@
 
 #include "types.h"
 
-class QDomDocument;
-class QDomElement;
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/vector.hpp>
+
+#include "ContentWindow.h"
+
 class QString;
 class QXmlQuery;
 
@@ -55,30 +59,40 @@ class QXmlQuery;
 class State
 {
 public:
+    /** Default constructor */
     State();
+    /**
+     * Constructor
+     * @param contentWindows a list of contentWindows to serialize
+     */
+    State(const ContentWindowPtrs& contentWindows);
+
+    /** Get the content windows */
+    const ContentWindowPtrs& getContentWindows() const;
 
     /**
-     * Save the given content windows with their positions, dimensions, etc. to
-     * the given file in XML format.
+     * @deprecated
+     * Load content windows stored in the given XML file.
+     * @return success if the legacy state file could be loaded
      */
-    bool saveXML( const QString& filename,
-                  const ContentWindowManagerPtrs& contentWindowManagers );
+    bool legacyLoadXML( const QString& filename );
 
-    /**
-     * Load content windows stored in the given XML file and return them in the
-     * given list of contentWindowManagers.
-     */
-    bool loadXML( const QString& filename,
-                  ContentWindowManagerPtrs& contentWindowManagers );
 private:
-    void saveVersion_( QDomDocument& doc, QDomElement& root );
-    void saveContentWindow_( QDomDocument& doc, QDomElement& root,
-                             const ContentWindowManagerPtr contentWindowManager );
+    friend class boost::serialization::access;
 
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        ar & boost::serialization::make_nvp("contentWindows", contentWindows_);
+    }
+
+    ContentWindowPtrs contentWindows_;
+
+    /** Legacy methods. @deprecated */
     bool checkVersion_( QXmlQuery& query ) const;
     ContentPtr loadContent_( QXmlQuery& query, const int index ) const;
-    ContentWindowManagerPtr restoreContent_( QXmlQuery& query,
-                                             ContentPtr content, const int index ) const;
+    ContentWindowPtr restoreContent_( QXmlQuery& query, ContentPtr content,
+                                      const int index ) const;
 };
 
 #endif

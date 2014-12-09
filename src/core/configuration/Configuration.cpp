@@ -38,16 +38,12 @@
 
 #include "Configuration.h"
 
-#include "log.h"
-#include "globals.h"
-#include "Options.h"
-
-#include <QDomElement>
 #include <QtXmlPatterns>
 
-Configuration::Configuration(const QString &filename, OptionsPtr options)
+#include <stdexcept>
+
+Configuration::Configuration(const QString &filename)
     : filename_(filename)
-    , options_(options)
     , totalScreenCountX_(0)
     , totalScreenCountY_(0)
     , screenWidth_(0)
@@ -55,22 +51,15 @@ Configuration::Configuration(const QString &filename, OptionsPtr options)
     , mullionWidth_(0)
     , mullionHeight_(0)
     , fullscreen_(false)
-    , backgroundColor_(Qt::black)
 {
     load();
 }
 
 void Configuration::load()
 {
-    put_flog(LOG_INFO, "loading %s", filename_.toLatin1().constData());
-
     QXmlQuery query;
-
     if(!query.setFocus(QUrl(filename_)))
-    {
-        put_flog(LOG_FATAL, "failed to load %s", filename_.toLatin1().constData());
-        exit(-1);
-    }
+        throw std::runtime_error("Invalid configuration file: " + filename_.toStdString());
 
     QString queryResult;
 
@@ -103,27 +92,7 @@ void Configuration::load()
     query.setQuery("string(/configuration/dimensions/@fullscreen)");
     if(query.evaluateTo(&queryResult))
         fullscreen_ = queryResult.toInt() != 0;
-
-    put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", totalScreenCountX_, totalScreenCountY_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
-
-    // Background content URI
-    query.setQuery("string(/configuration/background/@uri)");
-    if(query.evaluateTo(&queryResult))
-        backgroundUri_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
-
-    // Background color
-    query.setQuery("string(/configuration/background/@color)");
-    if (query.evaluateTo(&queryResult))
-    {
-        queryResult.remove(QRegExp("[\\n\\t\\r]"));
-
-        QColor newColor( queryResult );
-        if( newColor.isValid( ))
-            backgroundColor_ = newColor;
-    }
 }
-
-
 
 int Configuration::getTotalScreenCountX() const
 {
@@ -147,99 +116,52 @@ int Configuration::getScreenHeight() const
 
 int Configuration::getMullionWidth() const
 {
-    if(options_->getEnableMullionCompensation())
-    {
-        return mullionWidth_;
-    }
-    else
-    {
-        return 0;
-    }
+    return mullionWidth_;
 }
 
 int Configuration::getMullionHeight() const
 {
-    if(options_->getEnableMullionCompensation())
-    {
-        return mullionHeight_;
-    }
-    else
-    {
-        return 0;
-    }
+    return mullionHeight_;
 }
 
 int Configuration::getTotalWidth() const
 {
-    return totalScreenCountX_ * screenWidth_ + (totalScreenCountX_ - 1) * getMullionWidth();
+    return totalScreenCountX_ * screenWidth_ +
+           (totalScreenCountX_ - 1) * getMullionWidth();
 }
 
 int Configuration::getTotalHeight() const
 {
-    return totalScreenCountY_ * screenHeight_ + (totalScreenCountY_ - 1) * getMullionHeight();
+    return totalScreenCountY_ * screenHeight_ +
+            (totalScreenCountY_ - 1) * getMullionHeight();
+}
+
+double Configuration::getAspectRatio() const
+{
+    return double(getTotalWidth()) / getTotalHeight();
+}
+
+QRectF Configuration::getNormalizedScreenRect(const QPoint& tileIndex) const
+{
+    assert(tileIndex.x() < totalScreenCountX_);
+    assert(tileIndex.y() < totalScreenCountY_);
+
+    const int xPos = tileIndex.x() * (screenWidth_ + mullionWidth_);
+    const int yPos = tileIndex.y() * (screenHeight_ + mullionHeight_);
+
+    // normalize to 0->1
+    const float totalWidth = (float)getTotalWidth();
+    const float totalHeight = (float)getTotalHeight();
+
+    const float screenLeft = (float)xPos / totalWidth;
+    const float screenTop = (float)yPos / totalHeight;
+    const float screenWidth = (float)screenWidth_ / totalWidth;
+    const float screenHeight = (float)screenHeight_ / totalHeight;
+
+    return QRectF(screenLeft, screenTop, screenWidth, screenHeight);
 }
 
 bool Configuration::getFullscreen() const
 {
     return fullscreen_;
-}
-
-const QString &Configuration::getBackgroundUri() const
-{
-    return backgroundUri_;
-}
-
-const QColor &Configuration::getBackgroundColor() const
-{
-    return backgroundColor_;
-}
-
-void Configuration::setBackgroundColor(const QColor &color)
-{
-    backgroundColor_ = color;
-}
-
-void Configuration::setBackgroundUri(const QString& uri)
-{
-    backgroundUri_ = uri;
-}
-
-bool Configuration::save() const
-{
-    return save(filename_);
-}
-
-bool Configuration::save(const QString &filename) const
-{
-    QDomDocument doc("XmlDoc");
-    QFile infile(filename_);
-    if (!infile.open(QIODevice::ReadOnly))
-    {
-        put_flog(LOG_ERROR, "could not open configuration xml file for saving");
-        return false;
-    }
-    doc.setContent(&infile);
-    infile.close();
-
-    QDomElement root = doc.documentElement();
-
-    QDomElement background = root.firstChildElement("background");
-    if (background.isNull())
-    {
-        background = doc.createElement("background");
-        root.appendChild(background);
-    }
-    background.setAttribute("uri", backgroundUri_);
-    background.setAttribute("color", backgroundColor_.name());
-
-    QFile outfile(filename);
-    if (!outfile.open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        put_flog(LOG_ERROR, "could not open configuration xml file for saving");
-        return false;
-    }
-    QTextStream out(&outfile);
-    out << doc.toString(4);
-    outfile.close();
-    return true;
 }

@@ -39,97 +39,93 @@
 #ifndef CONTENT_H
 #define CONTENT_H
 
-#include "ContentFactory.h"
-#include "ContentType.h"
 #include "types.h"
+#include "ContentType.h"
 
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/nvp.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
-class ContentWindowManager;
+#include <QObject>
+#include <QSize>
 
-class Content : public QObject {
+class WallToWallChannel;
+
+/**
+ * An abstract Content displayed in a ContentWindow.
+ *
+ * This class does not actually hold any content data because it
+ * is meant to be sent through MPI to Rank>0 processes.
+ * The content data is held by FactoryObjects on Rank>0 processes.
+ * A Content object references a FactoryObject of the same ContentType based on its URI.
+ * It is possible for multiple Content objects to reference the same FactoryObject.
+ */
+class Content : public QObject
+{
     Q_OBJECT
 
-    public:
+public:
+    /** Constructor **/
+    Content( const QString& uri );
 
-        Content(QString uri = "");
+    /** Get the content URI **/
+    const QString& getURI() const;
 
-        const QString& getURI() const;
+    /** Get the content type **/
+    virtual CONTENT_TYPE getType() = 0;
 
-        virtual CONTENT_TYPE getType() = 0;
+    /**
+     * Read content metadata from the data source.
+     * Used on Rank0 for file-based content types to refresh data from source URI.
+     * @return true if the informations could be read.
+    **/
+    virtual bool readMetadata() = 0;
 
-        void getDimensions(int &width, int &height);
-        void setDimensions(int width, int height);
-        virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(ContentWindowManagerPtr window);
-        void blockAdvance( bool block ) { blockAdvance_ = block; }
+    /** Get the dimensions. */
+    QSize getDimensions() const;
 
-        // virtual method for implementing actions on advancing to a new frame
-        // useful when a process has multiple GLWindows
-        virtual void advance(ContentWindowManagerPtr) { }
+    /** Set the dimensions. */
+    void setDimensions( const QSize& dimensions );
 
-    signals:
+    /** Get the aspect ratio. */
+    float getAspectRatio() const;
 
-        void dimensionsChanged(int width, int height);
+    /** Used to indicate that the window is being moved. TODO: move to ContentWindow. */
+    void blockAdvance( bool block ) { blockAdvance_ = block; }
 
-    protected:
-        friend class boost::serialization::access;
+    /** Re-implement this method to update or synchronize before rendering. */
+    virtual void preRenderUpdate( Factories&, ContentWindowPtr, WallToWallChannel& ) { }
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & uri_;
-            ar & width_;
-            ar & height_;
-            ar & blockAdvance_;
-        }
+    /** Re-implement this method to update or synchronize after rendering. */
+    virtual void postRenderUpdate( Factories&, ContentWindowPtr, WallToWallChannel& ) { }
 
-        QString uri_;
-        int width_;
-        int height_;
-        bool blockAdvance_;
+signals:
+    /** Emitted by any Content subclass when its state has been modified */
+    void modified();
 
-        virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
+protected:
+    friend class boost::serialization::access;
+
+    // Default constructor required for boost::serialization
+    Content() {}
+
+    template< class Archive >
+    void serialize( Archive & ar, const unsigned int )
+    {
+        ar & boost::serialization::make_nvp( "uri", uri_ );
+        ar & boost::serialization::make_nvp( "width", size_.rwidth( ));
+        ar & boost::serialization::make_nvp( "height", size_.rheight( ));
+        ar & boost::serialization::make_nvp( "block_advance", blockAdvance_ );
+    }
+
+    QString uri_;
+    QSize size_;
+    bool blockAdvance_;
 };
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
-
-// typedef needed for SIP
-typedef ContentPtr pContent;
-
-class pyContent {
-
-    public:
-
-        pyContent(const char * str)
-        {
-            ContentPtr c(ContentFactory::getContent(QString::fromAscii(str)));
-            ptr_ = c;
-        }
-
-        pyContent(ContentPtr c)
-        {
-            ptr_ = c;
-        }
-
-        ContentPtr get()
-        {
-            return ptr_;
-        }
-
-        const char * getURI()
-        {
-            return ptr_->getURI().toAscii();
-        }
-
-    protected:
-
-        ContentPtr ptr_;
-};
+BOOST_SERIALIZATION_ASSUME_ABSTRACT( Content )
 
 #endif

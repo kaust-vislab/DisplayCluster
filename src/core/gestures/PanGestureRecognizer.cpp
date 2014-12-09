@@ -74,7 +74,7 @@ QGesture* PanGestureRecognizer::create( QObject* target )
 }
 
 QGestureRecognizer::Result PanGestureRecognizer::recognize( QGesture* state,
-                                                            QObject* watched,
+                                                            QObject*,
                                                             QEvent* event )
 {
     PanGesture* gesture = static_cast<PanGesture *>( state );

@@ -40,86 +40,77 @@
 #define OPTIONS_H
 
 #include "config.h"
-#include <QObject>
-#include <boost/serialization/access.hpp>
+#include "types.h"
+#include "serializationHelpers.h"
 
-class Options : public QObject
+#include <QObject>
+#include <QColor>
+#include <boost/serialization/access.hpp>
+#include <boost/enable_shared_from_this.hpp>
+
+/**
+ * Stores global display Options which can change during runtime.
+ *
+ * Can be serialized and distributed to the Wall applications.
+ */
+class Options : public QObject, public boost::enable_shared_from_this<Options>
 {
     Q_OBJECT
 
-    public:
-        Options();
+public:
+    /** Constructor */
+    Options();
 
-        bool getConstrainAspectRatio();
-        bool getShowWindowBorders();
-        bool getShowMouseCursor();
-        bool getShowTouchPoints();
-        bool getShowMovieControls();
-        bool getShowTestPattern();
-        bool getEnableMullionCompensation();
-        bool getShowZoomContext();
-        bool getShowStreamingSegments();
-        bool getShowStreamingStatistics();
+    /** @name Public getters */
+    //@{
+    bool getShowWindowBorders() const;
+    bool getShowTouchPoints() const;
+    bool getShowMovieControls() const;
+    bool getShowTestPattern() const;
+    bool getShowZoomContext() const;
+    bool getShowStreamingSegments() const;
+    bool getShowStatistics() const;
+    QColor getBackgroundColor() const;
+    //@}
 
-#if ENABLE_SKELETON_SUPPORT
-        bool getShowSkeletons();
-#endif
+public slots:
+    /** @name Public setters. @see updated() */
+    //@{
+    void setShowWindowBorders(bool set);
+    void setShowTouchPoints(bool set);
+    void setShowTestPattern(bool set);
+    void setShowZoomContext(bool set);
+    void setShowStreamingSegments(bool set);
+    void setShowStatistics(bool set);
+    void setBackgroundColor(QColor color);
+    //@}
 
-    public slots:
-        void setConstrainAspectRatio(bool set);
-        void setShowWindowBorders(bool set);
-        void setShowMouseCursor(bool set);
-        void setShowTouchPoints(bool set);
-        void setShowMovieControls(bool set);
-        void setShowTestPattern(bool set);
-        void setEnableMullionCompensation(bool set);
-        void setShowZoomContext(bool set);
-        void setShowStreamingSegments(bool set);
-        void setShowStreamingStatistics(bool set);
+signals:
+    /** Emitted when a value is changed by one of the setters. */
+    void updated(OptionsPtr);
 
-#if ENABLE_SKELETON_SUPPORT
-        void setShowSkeletons(bool set);
-#endif
+private:
+    friend class boost::serialization::access;
 
-    signals:
-        void updated();
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        ar & showWindowBorders_;
+        ar & showTouchPoints_;
+        ar & showTestPattern_;
+        ar & showZoomContext_;
+        ar & showStreamingSegments_;
+        ar & showStreamingStatistics_;
+        ar & backgroundColor_;
+    }
 
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & constrainAspectRatio_;
-            ar & showWindowBorders_;
-            ar & showMouseCursor_;
-            ar & showTouchPoints_;
-            ar & showMovieControls_;
-            ar & showTestPattern_;
-            ar & enableMullionCompensation_;
-            ar & showZoomContext_;
-            ar & showStreamingSegments_;
-            ar & showStreamingStatistics_;
-
-#if ENABLE_SKELETON_SUPPORT
-            ar & showSkeletons_;
-#endif
-        }
-
-        bool constrainAspectRatio_;
-        bool showWindowBorders_;
-        bool showMouseCursor_;
-        bool showTouchPoints_;
-        bool showMovieControls_;
-        bool showTestPattern_;
-        bool enableMullionCompensation_;
-        bool showZoomContext_;
-        bool showStreamingSegments_;
-        bool showStreamingStatistics_;
-
-#if ENABLE_SKELETON_SUPPORT
-        bool showSkeletons_;
-#endif
+    bool showWindowBorders_;
+    bool showTouchPoints_;
+    bool showTestPattern_;
+    bool showZoomContext_;
+    bool showStreamingSegments_;
+    bool showStreamingStatistics_;
+    QColor backgroundColor_;
 };
 
 #endif

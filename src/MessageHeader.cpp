@@ -50,9 +50,9 @@ MessageHeader::MessageHeader()
     memset(uri, '\0', MESSAGE_HEADER_URI_LENGTH);
 }
 
-MessageHeader::MessageHeader(MessageType type, uint32_t size, const std::string& streamUri)
-    : type(type)
-    , size(size)
+MessageHeader::MessageHeader(const MessageType type_, const uint32_t size_, const std::string& streamUri)
+    : type(type_)
+    , size(size_)
 {
     memset(uri, '\0', MESSAGE_HEADER_URI_LENGTH);
 

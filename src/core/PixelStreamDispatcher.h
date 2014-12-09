@@ -41,22 +41,27 @@
 #define PIXELSTREAMDISPATCHER_H
 
 #include <QObject>
-#include <QTimer>
 #include <map>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "types.h"
+
 #include "PixelStreamSegment.h"
 #include "PixelStreamBuffer.h"
 
-//#define USE_TIMER
+class PixelStreamWindowManager;
 
-using dc::PixelStreamSegment;
+//#define USE_TIMER
+#ifdef USE_TIMER
+#include <QTimer>
+#endif
 
 typedef std::map<QString, PixelStreamBuffer> StreamBuffers;
 
 /**
- * Gather PixelStream Segments from multiple sources and dispatch them to Wall processes through MPI
+ * Gather PixelStream Segments from multiple sources and dispatch the resulting
+ * full frames.
  */
 class PixelStreamDispatcher : public QObject
 {
@@ -64,7 +69,7 @@ class PixelStreamDispatcher : public QObject
 
 public:
     /** Construct a dispatcher */
-    PixelStreamDispatcher();
+    PixelStreamDispatcher(PixelStreamWindowManager& windowManager);
 
 public slots:
     /**
@@ -88,8 +93,10 @@ public slots:
      *
      * @param uri Identifier for the Stream
      * @param sourceIndex Identifier for the source in this stream
+     * @param segment The segment to process
      */
-    void processSegment(const QString uri, const size_t sourceIndex, PixelStreamSegment segment);
+    void processSegment(const QString uri, const size_t sourceIndex,
+                        PixelStreamSegment segment);
 
     /**
      * The given source has finished sending segments for the current frame
@@ -106,15 +113,21 @@ public slots:
      */
     void deleteStream(const QString uri);
 
+    /**
+     * Is called when the wall processes are ready to receive new frames
+     *
+     * @param uri Identifier for the stream
+     */
+    void requestFrame(const QString uri);
+
 signals:
     /**
      * Notify that a PixelStream has been opened
      *
      * @param uri Identifier for the Stream
-     * @param width Width of the stream
-     * @param height Height of the stream
+     * @param size Size in pixels of the stream
      */
-    void openPixelStream(QString uri, int width, int height);
+    void openPixelStream(QString uri, QSize size);
 
     /**
      * Notify that a pixel stream has been deleted
@@ -123,25 +136,20 @@ signals:
      */
     void deletePixelStream(QString uri);
 
-#ifndef USE_TIMER
-    /** @internal */
-    void dispatchFramesSignal();
-#endif
-
-private slots:
-    void dispatchFrames();
+    /**
+     * Dispatch a full frame
+     *
+     * @param frame The frame to dispatch
+     */
+    void sendFrame(PixelStreamFramePtr frame);
 
 private:
+    void sendLatestFrame(const QString uri);
+
+    PixelStreamWindowManager& windowManager_;
+
     // The buffers for each URI
     StreamBuffers streamBuffers_;
-
-    void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
-
-#ifdef USE_TIMER
-    QTimer sendTimer_;
-#else
-    boost::posix_time::ptime lastFrameSent_;
-#endif
 };
 
 #endif // PIXELSTREAMDISPATCHER_H

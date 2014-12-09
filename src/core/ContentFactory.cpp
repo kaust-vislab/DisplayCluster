@@ -39,8 +39,10 @@
 
 #include "ContentFactory.h"
 
-#include "log.h"
 #include "globals.h"
+#include "configuration/Configuration.h"
+
+#include "log.h"
 #include "config.h"
 
 #include "Content.h"
@@ -50,110 +52,103 @@
 #include "MovieContent.h"
 #if ENABLE_PDF_SUPPORT
 #  include "PDFContent.h"
-#  include "PDF.h"
-#  include "DisplayGroupManager.h"
+#  include "DisplayGroup.h"
 #endif
 #include "PixelStreamContent.h"
-#include "configuration/Configuration.h"
+
+#include <QFile>
+#include <QFileInfo>
+#include <QImageReader>
+#include <QTextStream>
+
+#include <boost/make_shared.hpp>
 
 #define ERROR_IMAGE_FILENAME ":/img/error.png"
 
+CONTENT_TYPE getContentTypeForFile(const QString& uri)
+{
+    const QString extension = QFileInfo(uri).suffix().toLower();
+
+    // SVGs must be processed first because they can also be read as an image
+    if(SVGContent::getSupportedExtensions().contains(extension))
+        return CONTENT_TYPE_SVG;
+
+    if(MovieContent::getSupportedExtensions().contains(extension))
+        return CONTENT_TYPE_MOVIE;
+
+#if ENABLE_PDF_SUPPORT
+    if(PDFContent::getSupportedExtensions().contains(extension))
+        return CONTENT_TYPE_PDF;
+#endif
+
+    if(extension == "pyr")
+        return CONTENT_TYPE_DYNAMIC_TEXTURE;
+
+    // small images use Texture; large images use DynamicTexture
+    const QImageReader imageReader(uri);
+    if(imageReader.canRead())
+    {
+        const QSize size = imageReader.size();
+
+        if(size.width() <= g_configuration->getTotalWidth() &&
+                size.height() <= g_configuration->getTotalHeight())
+            return CONTENT_TYPE_TEXTURE;
+
+        return CONTENT_TYPE_DYNAMIC_TEXTURE;
+    }
+
+    return CONTENT_TYPE_ANY;
+}
+
 ContentPtr ContentFactory::getContent(const QString& uri)
 {
-    // make sure file exists; otherwise use error image
     if( !QFile::exists( uri ))
     {
         put_flog(LOG_ERROR, "could not find file '%s'", uri.toLocal8Bit().constData());
-
-        ContentPtr content(new TextureContent(ERROR_IMAGE_FILENAME));
-        return content;
+        return getErrorContent();
     }
 
-    // convert to lower case for case-insensitivity in determining file type
-    const QString extension = QFileInfo(uri).suffix().toLower();
+    ContentPtr content;
 
+    switch(getContentTypeForFile(uri))
+    {
+    case CONTENT_TYPE_SVG:
+        content = boost::make_shared<SVGContent>(uri);
+        break;
+    case CONTENT_TYPE_MOVIE:
+        content = boost::make_shared<MovieContent>(uri);
+        break;
 #if ENABLE_PDF_SUPPORT
-    // See if this is a PDF document
-    if(PDFContent::getSupportedExtensions().contains(extension))
-    {
-        int width, height, pageCount;
-        {
-            PDF pdf(uri);
-            pdf.getDimensions(width, height);
-            pageCount = pdf.getPageCount();
-        }
-
-        PDFContent* pdfContent = new PDFContent(uri);
-        pdfContent->setDimensions(width, height);
-        pdfContent->setPageCount(pageCount);
-
-        pdfContent->connect(pdfContent, SIGNAL(pageChanged()), g_displayGroupManager.get(), SLOT(sendDisplayGroup()), Qt::QueuedConnection);
-
-        ContentPtr content(pdfContent);
-        return content;
-    }
+    case CONTENT_TYPE_PDF:
+        content = boost::make_shared<PDFContent>(uri);
+        break;
 #endif
-
-    // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
-    if(SVGContent::getSupportedExtensions().contains(extension))
-    {
-        ContentPtr content(new SVGContent(uri));
-        return content;
+    case CONTENT_TYPE_DYNAMIC_TEXTURE:
+        content = boost::make_shared<DynamicTextureContent>(uri);
+        break;
+    case CONTENT_TYPE_TEXTURE:
+        content = boost::make_shared<TextureContent>(uri);
+        break;
+    default:
+        put_flog(LOG_ERROR, "Unsupported or invalid file %s",
+                 uri.toLocal8Bit().constData());
+        break;
     }
 
-    // see if this is an image
-    QImageReader imageReader(uri);
-    if(imageReader.canRead())
-    {
-        // get its size
-        QSize size = imageReader.size();
-
-        // small images will use Texture; larger images will use DynamicTexture
-        ContentPtr content;
-
-        if(size.width() <= g_configuration->getTotalWidth() && size.height() <= g_configuration->getTotalHeight())
-        {
-            ContentPtr temp(new TextureContent(uri));
-            content = temp;
-        }
-        else
-        {
-            ContentPtr temp(new DynamicTextureContent(uri));
-            content = temp;
-        }
-
-        // set the size if valid
-        if(size.isValid() == true)
-        {
-            content->setDimensions(size.width(), size.height());
-        }
-
+    if (content && content->readMetadata())
         return content;
-    }
 
-    // see if this is an image pyramid
-    if(extension == "pyr")
-    {
-        ContentPtr content(new DynamicTextureContent(uri));
-        return content;
-    }
-
-    // see if this is a movie
-    if(MovieContent::getSupportedExtensions().contains(extension))
-    {
-        ContentPtr content(new MovieContent(uri));
-        return content;
-    }
-
-    put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.toLocal8Bit().constData());
-
-    ContentPtr content(new TextureContent(ERROR_IMAGE_FILENAME));
-    return content;
+    return getErrorContent();
 }
 
 ContentPtr ContentFactory::getPixelStreamContent(const QString& uri)
 {
     return ContentPtr(new PixelStreamContent(uri));
+}
+
+ContentPtr ContentFactory::getErrorContent()
+{
+    return ContentPtr(new TextureContent(ERROR_IMAGE_FILENAME));
 }
 
 const QStringList& ContentFactory::getSupportedExtensions()

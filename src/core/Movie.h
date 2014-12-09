@@ -40,79 +40,48 @@
 #define MOVIE_H
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include "GLTexture2D.h"
+#include "GLQuad.h"
+#include "ElapsedTimer.h"
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-// required for FFMPEG includes below, specifically for the Linux build
-#ifdef __cplusplus
-    #ifndef __STDC_CONSTANT_MACROS
-        #define __STDC_CONSTANT_MACROS
-    #endif
+class FFMPEGMovie;
+class WallToWallChannel;
 
-    #ifdef _STDINT_H
-        #undef _STDINT_H
-    #endif
+class Movie : public FactoryObject
+{
+public:
+    Movie(QString uri);
+    ~Movie();
 
-    #include <stdint.h>
-#endif
+    void getDimensions(int &width, int &height) const override;
+    void render(const QRectF& texCoords) override;
 
-extern "C" {
-    #include <libavcodec/avcodec.h>
-    #include <libavformat/avformat.h>
-    #include <libswscale/swscale.h>
-    #include <libavutil/error.h>
-    #include <libavutil/mathematics.h>
-}
+    void setVisible(const bool isVisible);
 
-class Movie : public FactoryObject {
+    void setPause(const bool pause);
+    void setLoop(const bool loop);
 
-    public:
+    void preRenderUpdate(WallToWallChannel& wallToWallChannel);
+    void postRenderUpdate(WallToWallChannel& wallToWallChannel);
 
-        Movie(QString uri);
-        ~Movie();
+private:
+    FFMPEGMovie* ffmpegMovie_;
 
-        static void initFFMPEGGlobalState();
+    QString uri_;
+    GLTexture2D texture_;
+    GLQuad quad_;
+    ElapsedTimer elapsedTimer_;
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        void nextFrame(bool skip);
-        void setPause(const bool pause);
-        void setLoop(const bool loop);
+    bool paused_;
 
-    private:
+    bool isVisible_;
+    bool skippedLastFrame_;
+    boost::posix_time::time_duration timestamp_;
 
-        // image location
-        QString uri_;
-
-        // texture
-        GLuint textureId_;
-
-        // FFMPEG
-        AVFormatContext * avFormatContext_;
-        AVCodecContext * avCodecContext_; // this is a member of AVFormatContext, saved for convenience; no need to free
-        SwsContext * swsContext_;
-        AVFrame * avFrame_;
-        AVFrame * avFrameRGB_;
-        int streamIdx_;
-        AVStream * videostream_;    // shortcut; no need to free
-
-        // used for seeking
-        int64_t start_time_;
-        int64_t duration_;
-        int64_t num_frames_;
-        double frameDuration_;
-
-        int64_t frame_index_;
-        bool skipped_frames_;
-
-        bool paused_;
-        bool loop_;
-
-        int64_t den2_;
-        int64_t num2_;
-
-        // frame timing
-        boost::posix_time::ptime nextTimestamp_;
+    bool generateTexture();
+    void synchronizeTimestamp(WallToWallChannel& wallToWallChannel);
 };
 
 #endif

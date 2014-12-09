@@ -40,7 +40,7 @@
 #define MESSAGE_HEADER_H
 
 #ifdef _WIN32
-    typedef __int32 int32_t;
+    typedef unsigned __int32 uint32_t;
 #else
     #include <stdint.h>
 #endif
@@ -65,7 +65,9 @@ enum MessageType
     MESSAGE_TYPE_FRAME_CLOCK,
     MESSAGE_TYPE_COMMAND,
     MESSAGE_TYPE_QUIT,
-    MESSAGE_TYPE_ACK
+    MESSAGE_TYPE_ACK,
+    MESSAGE_TYPE_OPTIONS,
+    MESSAGE_TYPE_MARKERS
 };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
@@ -89,7 +91,7 @@ struct MessageHeader
     MessageHeader();
 
     /** Construct a message header with a uri */
-    MessageHeader(MessageType type, uint32_t size, const std::string& streamUri = "");
+    MessageHeader(const MessageType type, const uint32_t size, const std::string& streamUri = "");
 
     /** The size of the QDataStream serialized output. */
     static const size_t serializedSize;

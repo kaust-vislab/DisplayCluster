@@ -77,7 +77,6 @@ bool FastCGIWrapper::accept()
      */
     fd_set read_from;
     struct timeval timeout;
-    int retval = 0;
 
     while(_run)
     {
@@ -89,7 +88,7 @@ bool FastCGIWrapper::accept()
         // every iteration
         FD_ZERO(&read_from);
         FD_SET(_socket, &read_from);
-        retval = select(_socket + 1, &read_from, 0,0, &timeout);
+        const int retval = select(_socket + 1, &read_from, 0,0, &timeout);
         if( retval == -1)
             break;
         else if(retval)

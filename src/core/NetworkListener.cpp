@@ -40,24 +40,25 @@
 
 #include "NetworkListenerThread.h"
 #include "PixelStreamDispatcher.h"
-#include "DisplayGroupManager.h"
+#include "PixelStreamWindowManager.h"
 #include "log.h"
 
 #include "CommandHandler.h"
 
+#include <QThread>
+#include <stdexcept>
+
 const int NetworkListener::defaultPortNumber_ = 1701;
 
-NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int port)
-    : displayGroupManager_(displayGroupManager)
-    , pixelStreamDispatcher_(new PixelStreamDispatcher())
+NetworkListener::NetworkListener(PixelStreamWindowManager& windowManager, int port)
+    : windowManager_(windowManager)
+    , pixelStreamDispatcher_(new PixelStreamDispatcher(windowManager))
     , commandHandler_(new CommandHandler())
 {
-    qRegisterMetaType<size_t>("size_t");
-
     if( !listen(QHostAddress::Any, port) )
     {
-        put_flog(LOG_FATAL, "could not listen on port %i", port);
-        exit(-1);
+        const QString err = QString("could not listen on port: %1").arg(port);
+        throw std::runtime_error(err.toStdString());
     }
 }
 
@@ -72,33 +73,38 @@ CommandHandler& NetworkListener::getCommandHandler() const
     return *commandHandler_;
 }
 
-void NetworkListener::incomingConnection(int socketDescriptor)
+PixelStreamDispatcher* NetworkListener::getPixelStreamDispatcher() const
+{
+    return pixelStreamDispatcher_;
+}
+
+void NetworkListener::incomingConnection(int socketHandle)
 {
     put_flog(LOG_DEBUG, "");
 
-    QThread * thread = new QThread();
-    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
+    QThread * workerThread = new QThread();
+    NetworkListenerThread * worker = new NetworkListenerThread(socketHandle);
 
-    worker->moveToThread(thread);
+    worker->moveToThread(workerThread);
 
-    connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
-    connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    connect(workerThread, SIGNAL(started()), worker, SLOT(initialize()));
+    connect(worker, SIGNAL(finished()), workerThread, SLOT(quit()));
     // Make sure the thread will be deleted
-    connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
 
     // Commands
     connect(worker, SIGNAL(receivedCommand(QString,QString)),
             commandHandler_, SLOT(process(QString,QString)));
 
-    // DisplayGroupManager
-    connect( &displayGroupManager_, SIGNAL( pixelStreamViewClosed( QString )),
+    // WindowManager
+    connect( &windowManager_, SIGNAL( pixelStreamWindowClosed( QString )),
              worker, SLOT(pixelStreamerClosed( QString )));
-    connect( &displayGroupManager_,
+    connect( &windowManager_,
              SIGNAL( eventRegistrationReply( QString, bool )),
              worker, SLOT( eventRegistrationReply( QString, bool )));
     connect( worker, SIGNAL( registerToEvents( QString, bool, EventReceiver* )),
-             &displayGroupManager_,
+             &windowManager_,
              SLOT( registerEventReceiver( QString, bool, EventReceiver* )));
 
     // PixelStreamDispatcher
@@ -111,5 +117,5 @@ void NetworkListener::incomingConnection(int socketDescriptor)
     connect(worker, SIGNAL(receivedRemovePixelStreamSource(QString,size_t)),
             pixelStreamDispatcher_, SLOT(removeSource(QString,size_t)));
 
-    thread->start();
+    workerThread->start();
 }

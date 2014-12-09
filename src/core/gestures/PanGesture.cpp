@@ -39,7 +39,7 @@
 
 #include "PanGesture.h"
 
-PanGesture::PanGesture( QObject* parent )
-    : QGesture( parent )
+PanGesture::PanGesture( QObject* parentObject )
+    : QGesture( parentObject )
     , _acceleration( 0 )
 {}

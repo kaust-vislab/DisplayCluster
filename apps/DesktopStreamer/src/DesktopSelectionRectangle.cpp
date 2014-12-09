@@ -44,10 +44,7 @@
 
 DesktopSelectionRectangle::DesktopSelectionRectangle()
     : resizing_(false)
-    , x_(0)
-    , y_(0)
-    , width_(DEFAULT_SIZE)
-    , height_(DEFAULT_SIZE)
+    , coordinates_(0, 0, DEFAULT_SIZE, DEFAULT_SIZE)
 {
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
@@ -56,7 +53,8 @@ DesktopSelectionRectangle::DesktopSelectionRectangle()
     setPen(QPen(QBrush(QColor(255, 0, 0)), PEN_WIDTH));
 
     // current coordinates, accounting for width of the pen outline
-    setRect(x_-PEN_WIDTH/2, y_-PEN_WIDTH/2, width_+PEN_WIDTH, height_+PEN_WIDTH);
+    setRect(coordinates_.x()-PEN_WIDTH/2, coordinates_.y()-PEN_WIDTH/2,
+            coordinates_.width()+PEN_WIDTH, coordinates_.height()+PEN_WIDTH);
 }
 
 void DesktopSelectionRectangle::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
@@ -64,69 +62,67 @@ void DesktopSelectionRectangle::paint(QPainter * painter, const QStyleOptionGrap
     QGraphicsRectItem::paint(painter, option, widget);
 }
 
-void DesktopSelectionRectangle::setCoordinates(int x, int y, int width, int height)
+void DesktopSelectionRectangle::setCoordinates(QRect coordinates)
 {
-    x_ = x;
-    y_ = y;
-    width_ = width;
-    height_ = height;
+    coordinates_ = coordinates;
 
-    setRect(mapRectFromScene(x_-PEN_WIDTH/2, y_-PEN_WIDTH/2, width_+PEN_WIDTH, height_+PEN_WIDTH));
+    setRect(mapRectFromScene(coordinates_.x()-PEN_WIDTH/2, coordinates_.y()-PEN_WIDTH/2,
+                             coordinates_.width()+PEN_WIDTH, coordinates_.height()+PEN_WIDTH));
 }
 
-void DesktopSelectionRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
+void DesktopSelectionRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent * mouseEvent)
 {
-    if(event->buttons().testFlag(Qt::LeftButton))
+    if(mouseEvent->buttons().testFlag(Qt::LeftButton))
     {
         if(resizing_)
         {
             QRectF r = rect();
-            QPointF eventPos = event->pos();
 
-            r.setBottomRight(eventPos);
+            r.setBottomRight(mouseEvent->pos());
 
             setRect(r);
         }
         else
         {
-            QPointF delta = event->pos() - event->lastPos();
+            QPointF delta = mouseEvent->pos() - mouseEvent->lastPos();
 
             moveBy(delta.x(), delta.y());
         }
 
         updateCoordinates();
-        emit coordinatesChanged(x_, y_, width_, height_);
+        emit coordinatesChanged(coordinates_);
     }
 }
 
-void DesktopSelectionRectangle::mousePressEvent(QGraphicsSceneMouseEvent * event)
+void DesktopSelectionRectangle::mousePressEvent(QGraphicsSceneMouseEvent * mouseEvent)
 {
     // item rectangle and event position
-    QRectF r = rect();
-    QPointF eventPos = event->pos();
+    const QRectF r = rect();
+    const QPointF eventPos = mouseEvent->pos();
 
     // check to see if user clicked on the resize button
-    if(fabs((r.x()+r.width()) - eventPos.x()) <= CORNER_RESIZE_THRESHHOLD && fabs((r.y()+r.height()) - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD)
+    if(fabs((r.x()+r.width()) - eventPos.x()) <= CORNER_RESIZE_THRESHHOLD &&
+       fabs((r.y()+r.height()) - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD)
     {
         resizing_ = true;
     }
 
-    QGraphicsItem::mousePressEvent(event);
+    QGraphicsItem::mousePressEvent(mouseEvent);
 }
 
-void DesktopSelectionRectangle::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
+void DesktopSelectionRectangle::mouseReleaseEvent(QGraphicsSceneMouseEvent * mouseEvent)
 {
     resizing_ = false;
 
-    QGraphicsItem::mouseReleaseEvent(event);
+    QGraphicsItem::mouseReleaseEvent(mouseEvent);
 }
 
 void DesktopSelectionRectangle::updateCoordinates()
 {
-    QRectF sceneRect = mapRectToScene(rect());
+    const QRectF sceneRect = mapRectToScene(rect());
 
-    x_ = (int)sceneRect.x() + PEN_WIDTH/2;
-    y_ = (int)sceneRect.y() + PEN_WIDTH/2;
-    width_ = (int)sceneRect.width() - PEN_WIDTH;
-    height_ = (int)sceneRect.height() - PEN_WIDTH;
+    coordinates_.setX( (int)sceneRect.x() + PEN_WIDTH/2 );
+    coordinates_.setY( (int)sceneRect.y() + PEN_WIDTH/2 );
+    coordinates_.setWidth( (int)sceneRect.width() - PEN_WIDTH );
+    coordinates_.setHeight( (int)sceneRect.height() - PEN_WIDTH );
 }

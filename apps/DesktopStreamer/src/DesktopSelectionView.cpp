@@ -39,8 +39,8 @@
 #include "DesktopSelectionView.h"
 #include "DesktopSelectionRectangle.h"
 
-DesktopSelectionView::DesktopSelectionView(QWidget* parent)
-    : QGraphicsView(parent)
+DesktopSelectionView::DesktopSelectionView(QWidget* widget_)
+    : QGraphicsView(widget_)
     , desktopSelectionRectangle_(0)
 {
     // create and set scene for the view
@@ -71,10 +71,10 @@ DesktopSelectionRectangle* DesktopSelectionView::getDesktopSelectionRectangle()
     return desktopSelectionRectangle_;
 }
 
-void DesktopSelectionView::resizeEvent(QResizeEvent * event)
+void DesktopSelectionView::resizeEvent(QResizeEvent * resizeEvt)
 {
     // scene rectangle matches viewport rectangle
     setSceneRect(rect());
 
-    QGraphicsView::resizeEvent(event);
+    QGraphicsView::resizeEvent(resizeEvt);
 }

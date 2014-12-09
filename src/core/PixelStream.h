@@ -41,35 +41,46 @@
 
 #include "FactoryObject.h"
 #include "PixelStreamSegment.h"
+#include "SwapSyncObject.h"
 #include "types.h"
 
-#include <QtGui>
+#include <QObject>
+#include <QRectF>
+#include <QString>
 #include <boost/shared_ptr.hpp>
 #include <vector>
-#include <queue>
-
-using dc::PixelStreamSegment;
-using dc::PixelStreamSegmentParameters;
-typedef std::vector<PixelStreamSegment> PixelStreamSegments;
 
 class PixelStreamSegmentRenderer;
 class PixelStreamSegmentDecoder;
+class WallToWallChannel;
 typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
 typedef boost::shared_ptr<PixelStreamSegmentRenderer> PixelStreamSegmentRendererPtr;
 
-class PixelStream : public FactoryObject
+class PixelStream : public QObject, public FactoryObject
 {
+    Q_OBJECT
+
 public:
     PixelStream(const QString& uri);
 
-    void getDimensions(int &width, int &height) const;
+    void getDimensions(int &width, int &height) const override;
 
-    void preRenderUpdate();
-    void render(const float tX, const float tY, const float tW, const float tH);
+    void preRenderUpdate(const QRectF& windowRect, WallToWallChannel& wallToWallChannel);
+    void render(const QRectF& texCoords) override;
 
-    void insertNewFrame(const PixelStreamSegments& segments);
+    void setNewFrame(const PixelStreamFramePtr frame);
+
+    void setRenderingOptions(const bool showSegmentBorders,
+                             const bool showSegmentStatistics);
+
+signals:
+    void requestFrame(const QString uri);
 
 private:
+    void sync(WallToWallChannel& wallToWallChannel);
+
+    SwapSyncObject<PixelStreamFramePtr> syncPixelStreamFrame_;
+
     // pixel stream identifier
     QString uri_;
 
@@ -89,19 +100,25 @@ private:
     // For each segment, object for image decoding, rendering and storing parameters
     std::vector<PixelStreamSegmentRendererPtr> segmentRenderers_;
 
+    // The coordinates of the ContentWindow of this PixelStream
+    QRectF contentWindowRect_;
+
+    bool showSegmentBorders_;
+    bool showSegmentStatistics_;
+
     void updateRenderers(const PixelStreamSegments& segments);
-    void updateVisibleTextures();
+    void updateVisibleTextures(const QRectF& windowRect);
     void swapBuffers();
     void recomputeDimensions(const PixelStreamSegments& segments);
-    void decodeVisibleTextures();
+    void decodeVisibleTextures(const QRectF& windowRect);
 
     void adjustFrameDecodersCount(const size_t count);
     void adjustSegmentRendererCount(const size_t count);
 
-    bool isDecodingInProgress();
+    bool isDecodingInProgress(WallToWallChannel& wallToWallChannel);
 
-    bool isVisible(const QRect& segment);
-    bool isVisible(const PixelStreamSegment& segment);
+    bool isVisible(const QRect& segment, const QRectF& windowRect);
+    bool isVisible(const PixelStreamSegment& segment, const QRectF& windowRect);
 };
 
 

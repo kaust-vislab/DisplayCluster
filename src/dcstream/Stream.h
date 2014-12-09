@@ -41,10 +41,16 @@
 #ifndef DCSTREAM_H
 #define DCSTREAM_H
 
+// needed for future.hpp with Boost 1.41
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+
+#include <boost/thread/future.hpp>
 #include <string>
 
 #include "Event.h"
 #include "ImageWrapper.h"
+#include <dc/api.h>
 
 class Application;
 
@@ -82,23 +88,47 @@ public:
      *                "192.168.1.83".
      * @version 1.0
      */
-    Stream(const std::string& name, const std::string& address);
+    DC_API Stream( const std::string& name, const std::string& address );
 
     /** Destruct the Stream, closing the connection. @version 1.0 */
-    virtual ~Stream();
+    DC_API virtual ~Stream();
 
     /** @return true if the stream is connected, false otherwise. @version 1.0*/
-    bool isConnected() const;
+    DC_API bool isConnected() const;
+
+    /** @name Asynchronous send API */
+    //@{
+    /** Future signaling success of asyncSend(). @version 1.1 */
+    typedef boost::unique_future< bool > Future;
 
     /**
-     * Send an image.
+     * Send an image and finish the frame asynchronously.
      *
+     * The send (and the optional compression) and finishFrame() are executed in
+     * a different thread. The result of this operation can be obtained by the
+     * returned future object.
+     *
+     * @param image The image to send. Note that the image is not copied, so the
+     *              referenced must remain valid until the send is finished
+     * @return true if the image data could be sent, false otherwise
+     * @see send()
+     * @version 1.1
+     */
+    DC_API Future asyncSend( const ImageWrapper& image );
+    //@}
+
+    /** @name Synchronous send API */
+    //@{
+    /**
+     * Send an image synchronously.
+     *
+     * @note A call to send() while an asyncSend() is pending is undefined.
      * @param image The image to send
      * @return true if the image data could be sent, false otherwise
      * @version 1.0
      * @sa finishFrame()
      */
-    bool send(const ImageWrapper& image);
+    DC_API bool send( const ImageWrapper& image );
 
     /**
      * Notify that all the images for this frame have been sent.
@@ -108,10 +138,13 @@ public:
      * the images once all the senders which use the same name have finished a
      * frame.
      *
+     * @note A call to finishFrame() while an asyncSend() is pending is
+     *       undefined.
      * @see send()
      * @version 1.0
      */
-    bool finishFrame();
+    DC_API bool finishFrame();
+    //@}
 
     /**
      * Register to receive Events.
@@ -136,7 +169,7 @@ public:
      * @return true if the registration could be or was already established.
      * @version 1.0
      */
-    bool registerForEvents(const bool exclusive = false);
+    DC_API bool registerForEvents( const bool exclusive = false );
 
     /**
      * Is this stream registered to receive events.
@@ -148,7 +181,7 @@ public:
      *         registration request, false otherwise
      * @version 1.0
      */
-    bool isRegisteredForEvents() const;
+    DC_API bool isRegisteredForEvents() const;
 
     /**
      * Get the native descriptor for the data stream.
@@ -161,7 +194,7 @@ public:
      * @return The native descriptor if available; otherwise returns -1.
      * @version 1.0
      */
-    int getDescriptor() const;
+    DC_API int getDescriptor() const;
 
     /**
      * Check if a new Event is available.
@@ -173,7 +206,7 @@ public:
      * @return True if an Event is available, false otherwise
      * @version 1.0
      */
-    bool hasEvent() const;
+    DC_API bool hasEvent() const;
 
     /**
      * Get the next Event.
@@ -187,7 +220,7 @@ public:
      * @return The next Event if available, otherwise an empty (default) Event.
      * @version 1.0
      */
-    Event getEvent();
+    DC_API Event getEvent();
 
 private:
     /** Disable copy constructor. */

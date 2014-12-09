@@ -50,31 +50,31 @@ const std::string CRLF = "\r\n";
 namespace dcWebservice
 {
 
-Response::Response(unsigned int code, std::string  msg, std::string body)
+Response::Response(unsigned int code, std::string  msg, std::string body_)
     : statusCode(code),
       statusMsg(msg),
-      body(body)
+      body(body_)
 {}
 
 ConstResponsePtr Response::OK()
 {
     static ConstResponsePtr response(new Response(200, "OK",
-		       "{\"code\":\"200\", \"msg\":\"OK\"}"));
+               "{\"code\":\"200\", \"msg\":\"OK\"}"));
     return response;
 }
 
 
 ConstResponsePtr Response::NotFound()
-{ 
+{
     static ConstResponsePtr response(new Response(404, "Not Found",
-		       "{\"code\":\"404\", \"msg\":\"Not Found\"}"));
+               "{\"code\":\"404\", \"msg\":\"Not Found\"}"));
     return response;
 }
 
 ConstResponsePtr Response::ServerError()
-{ 
+{
     static ConstResponsePtr response(new Response(500, "Internal Server Error",
-		       "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}"));
+               "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}"));
     return response;
 }
 
@@ -105,8 +105,8 @@ std::ostream& operator<<(std::ostream& os, const Response& obj)
 bool operator==(const Response& lhs, const Response& rhs)
 {
     return (lhs.statusCode == rhs.statusCode &&
-	    lhs.statusMsg == rhs.statusMsg &&
-	    lhs.body == rhs.body);
+        lhs.statusMsg == rhs.statusMsg &&
+        lhs.body == rhs.body);
 }
 
 }

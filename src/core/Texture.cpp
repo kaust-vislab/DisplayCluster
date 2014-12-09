@@ -37,75 +37,55 @@
 /*********************************************************************/
 
 #include "Texture.h"
-#include "globals.h"
 #include "log.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
 
-Texture::Texture(QString uri)
+#include <QImageReader>
+
+Texture::Texture(const QString uri)
     : uri_( uri )
-    , textureId_( 0 )
+{
+    const QImageReader imageReader(uri_);
+    if(!imageReader.canRead())
+    {
+        put_flog(LOG_ERROR, "error loading %s", uri_.toLocal8Bit().constData());
+        return;
+    }
+    imageSize_ = imageReader.size();
+}
+
+Texture::~Texture()
+{
+}
+
+void Texture::getDimensions(int &width, int &height) const
+{
+    width = imageSize_.width();
+    height = imageSize_.height();
+}
+
+bool Texture::generateTexture()
 {
     const QImage image(uri_);
     if(image.isNull())
     {
         put_flog(LOG_ERROR, "error loading %s", uri_.toLocal8Bit().constData());
-        return;
+        return false;
     }
 
-    // save image dimensions
-    imageWidth_ = image.width();
-    imageHeight_ = image.height();
-
-    // generate new texture
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA,
-                                                          QGLContext::LinearFilteringBindOption |
-                                                          QGLContext::MipmapBindOption);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    return texture_.init(image, GL_BGRA, true);
 }
 
-Texture::~Texture()
+void Texture::render(const QRectF& texCoords)
 {
-    if(textureId_)
-        g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-}
-
-void Texture::getDimensions(int &width, int &height)
-{
-    width = imageWidth_;
-    height = imageHeight_;
-}
-
-void Texture::render(float tX, float tY, float tW, float tH)
-{
-    updateRenderedFrameIndex();
-
-    if(!textureId_)
+    if(!texture_.isValid() && !generateTexture())
         return;
 
-    // draw the texture
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
 
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textureId_);
+    texture_.bind();
 
-    glBegin(GL_QUADS);
-
-    glTexCoord2f(tX,tY);
-    glVertex2f(0.,0.);
-
-    glTexCoord2f(tX+tW,tY);
-    glVertex2f(1.,0.);
-
-    glTexCoord2f(tX+tW,tY+tH);
-    glVertex2f(1.,1.);
-
-    glTexCoord2f(tX,tY+tH);
-    glVertex2f(0.,1.);
-
-    glEnd();
+    quad_.setTexCoords(texCoords);
+    quad_.render();
 
     glPopAttrib();
 }

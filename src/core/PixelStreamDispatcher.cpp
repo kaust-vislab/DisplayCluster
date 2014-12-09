@@ -38,32 +38,20 @@
 /*********************************************************************/
 
 #include "PixelStreamDispatcher.h"
-#include "DisplayGroupManager.h"
-#include "globals.h"
-
-#include "MessageHeader.h"
-#include <boost/serialization/vector.hpp>
-#include <mpi.h>
-
-#define DISPATCH_FREQUENCY 100
+#include "PixelStreamWindowManager.h"
+#include "PixelStreamFrame.h"
 
 #define STREAM_WINDOW_DEFAULT_SIZE 100
 
-PixelStreamDispatcher::PixelStreamDispatcher()
+PixelStreamDispatcher::PixelStreamDispatcher(PixelStreamWindowManager& windowManager)
+    : windowManager_(windowManager)
 {
-#ifdef USE_TIMER
-    connect(&sendTimer_, SIGNAL(timeout()), this, SLOT(dispatchFrames()));
-    sendTimer_.start(1000/DISPATCH_FREQUENCY);
-#else
-    lastFrameSent_ = boost::posix_time::microsec_clock::universal_time();
-    // Not using a queued connection here causes the rendering to lag behind and the main UI to freeze..
-    connect(this, SIGNAL(dispatchFramesSignal()), this, SLOT(dispatchFrames()), Qt::QueuedConnection);
-#endif
-
-    // Connect with the DisplayGroupManager
-    connect(this, SIGNAL(openPixelStream(QString, int, int)), g_displayGroupManager.get(), SLOT(openPixelStream(QString, int, int)));
-    connect(this, SIGNAL(deletePixelStream(QString)), g_displayGroupManager.get(), SLOT(closePixelStream(QString)));
-    connect(g_displayGroupManager.get(), SIGNAL(pixelStreamViewClosed(QString)), this, SLOT(deleteStream(QString)));
+    connect(this, SIGNAL(openPixelStream(QString, QSize)),
+            &windowManager, SLOT(openPixelStreamWindow(QString, QSize)));
+    connect(this, SIGNAL(deletePixelStream(QString)),
+            &windowManager, SLOT(closePixelStreamWindow(QString)));
+    connect(&windowManager, SIGNAL(pixelStreamWindowClosed(QString)),
+            this, SLOT(deleteStream(QString)));
 }
 
 void PixelStreamDispatcher::addSource(const QString uri, const size_t sourceIndex)
@@ -95,25 +83,19 @@ void PixelStreamDispatcher::processFrameFinished(const QString uri, const size_t
     if (!streamBuffers_.count(uri))
         return;
 
-    streamBuffers_[uri].finishFrameForSource(sourceIndex);
+    PixelStreamBuffer& buffer = streamBuffers_[uri];
+    buffer.finishFrameForSource(sourceIndex);
 
     // When the first frame is complete, notify that the stream is now open
-    if (streamBuffers_[uri].isFirstFrame() && streamBuffers_[uri].hasFrameComplete())
+    if (buffer.isFirstCompleteFrame())
     {
-        QSize size = streamBuffers_[uri].getFrameSize();
-        emit openPixelStream(uri, size.width(), size.height());
+        QSize size = buffer.getFrameSize();
+        emit openPixelStream(uri, size);
+        buffer.setAllowedToSend(true);
     }
 
-#ifdef USE_TIMER
-#else
-    const boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
-    if ((now - lastFrameSent_).total_milliseconds() > 1000/DISPATCH_FREQUENCY)
-    {
-        lastFrameSent_ = now;
-        //dispatchFrames(); // See comment above about direct Signal connection..
-        emit dispatchFramesSignal();
-    }
-#endif
+    if (buffer.isAllowedToSend())
+        sendLatestFrame(uri);
 }
 
 void PixelStreamDispatcher::deleteStream(const QString uri)
@@ -125,59 +107,35 @@ void PixelStreamDispatcher::deleteStream(const QString uri)
     }
 }
 
-void PixelStreamDispatcher::dispatchFrames()
+void PixelStreamDispatcher::requestFrame(const QString uri)
 {
-    for (StreamBuffers::iterator it = streamBuffers_.begin(); it != streamBuffers_.end(); ++it)
-    {
-        // Only dispatch the last frame
-        PixelStreamSegments segments;
-        while (it->second.hasFrameComplete())
-        {
-            segments = it->second.getFrame();
-        }
-        if (!segments.empty())
-        {
-            QSize size = it->second.computeFrameDimensions(segments);
-            g_displayGroupManager->adjustPixelStreamContentDimensions(it->first, size.width(), size.height(), false);
+    if (!streamBuffers_.count(uri))
+        return;
 
-            sendPixelStreamSegments(segments, it->first);
-        }
-    }
+    PixelStreamBuffer& buffer = streamBuffers_[uri];
+    buffer.setAllowedToSend(true);
+    sendLatestFrame(uri);
 }
 
-void PixelStreamDispatcher::sendPixelStreamSegments(const std::vector<PixelStreamSegment> & segments, const QString& uri)
+void PixelStreamDispatcher::sendLatestFrame(const QString uri)
 {
-    assert(!segments.empty() && "sendPixelStreamSegments() received an empty vector");
+    PixelStreamFramePtr frame(new PixelStreamFrame);
+    frame->uri = uri;
 
-    // serialize the vector
-    std::ostringstream oss(std::ostringstream::binary);
+    PixelStreamBuffer& buffer = streamBuffers_[uri];
 
-    // brace this so destructor is called on archive before we use the stream
-    {
-        boost::archive::binary_oarchive oa(oss);
-        oa << segments;
-    }
+    // Only send the lastest frame
+    while (buffer.hasCompleteFrame())
+        frame->segments = buffer.popFrame();
 
-    // serialized data to string
-    std::string serializedString = oss.str();
-    int size = serializedString.size();
+    if (frame->segments.empty())
+        return;
 
-    // send the header and the message
-    MessageHeader mh;
-    mh.size = size;
-    mh.type = MESSAGE_TYPE_PIXELSTREAM;
+    const QSize& size = PixelStreamBuffer::computeFrameDimensions(frame->segments);
+    windowManager_.updateDimension(frame->uri, size);
 
-    // add the truncated URI to the header
-    strncpy(mh.uri, uri.toLocal8Bit().constData(), MESSAGE_HEADER_URI_LENGTH-1);
+    // receiver will request a new frame once this frame was consumed
+    buffer.setAllowedToSend(false);
 
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
-
-    // broadcast the message
-    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+    emit sendFrame(frame);
 }
-
-

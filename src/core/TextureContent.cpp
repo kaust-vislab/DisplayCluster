@@ -37,19 +37,30 @@
 /*********************************************************************/
 
 #include "TextureContent.h"
-#include "globals.h"
-#include "Texture.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
 
-#include <boost/serialization/export.hpp>
 #include "serializationHelpers.h"
+#include <boost/serialization/export.hpp>
+#include <QImageReader>
 
 BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
+
+TextureContent::TextureContent(const QString& uri)
+    : Content(uri)
+{}
 
 CONTENT_TYPE TextureContent::getType()
 {
     return CONTENT_TYPE_TEXTURE;
+}
+
+bool TextureContent::readMetadata()
+{
+    const QImageReader imageReader(uri_);
+    if(!imageReader.canRead())
+        return false;
+
+    size_ = imageReader.size();
+    return true;
 }
 
 const QStringList& TextureContent::getSupportedExtensions()
@@ -64,14 +75,4 @@ const QStringList& TextureContent::getSupportedExtensions()
     }
 
     return extensions;
-}
-
-void TextureContent::getFactoryObjectDimensions(int &width, int &height)
-{
-    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->getDimensions(width, height);
-}
-
-void TextureContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

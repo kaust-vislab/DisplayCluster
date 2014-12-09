@@ -41,12 +41,14 @@
 #ifndef DCSTREAMPRIVATE_H
 #define DCSTREAMPRIVATE_H
 
-#include <string>
-
 #include "Event.h"
 #include "MessageHeader.h"
 #include "ImageSegmenter.h"
 #include "Socket.h" // member
+#include "Stream.h" // Stream::Future
+
+#include <QMutex>
+#include <string>
 
 class QString;
 
@@ -55,6 +57,7 @@ namespace dc
 
 struct PixelStreamSegment;
 struct PixelStreamSegmentParameters;
+class StreamSendWorker;
 
 /**
  * Private implementation for the Stream class.
@@ -71,10 +74,10 @@ public:
      *
      * @param name the unique stream name
      * @param address Address of the target DisplayCluster instance.
-     * @return true if the connection could be established
      */
     StreamPrivate( const std::string& name, const std::string& address );
 
+    /** Destructor, close the Stream. */
     ~StreamPrivate();
 
     /** The stream identifier. */
@@ -95,6 +98,15 @@ public:
      */
     bool close();
 
+    /** @sa Stream::send */
+    bool send( const ImageWrapper& image );
+
+    /** @sa Stream::asyncSend */
+    Stream::Future asyncSend(const ImageWrapper& image);
+
+    /** @sa Stream::finishFrame */
+    bool finishFrame();
+
     /**
      * Send an existing PixelStreamSegment via the DcSocket.
      * @param socket The DcSocket instance
@@ -110,6 +122,11 @@ public:
      * @return true if the request could be sent, false otherwise.
      */
     bool sendCommand(const QString& command);
+
+    QMutex sendLock_;
+
+private:
+    StreamSendWorker* sendWorker_;
 };
 
 }

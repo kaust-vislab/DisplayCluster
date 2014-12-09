@@ -42,30 +42,45 @@
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 
-class DynamicTextureContent : public Content {
+/**
+ * The Content object for a dynamically loaded large scale image.
+ */
+class DynamicTextureContent : public Content
+{
+public:
+    /**
+     * Constructor.
+     * @param uri The image or pyramid file.
+     */
+    explicit DynamicTextureContent(const QString& uri);
 
-    public:
-        DynamicTextureContent(QString uri = "") : Content(uri) { }
+    /** Get the content type **/
+    CONTENT_TYPE getType() override;
 
-        CONTENT_TYPE getType();
+    /**
+     * Read texture informations from the source URI.
+     * @return true on success, false if the URI is invalid or an error occured.
+    **/
+    bool readMetadata() override;
 
-        void getFactoryObjectDimensions(int &width, int &height);
+    static const QStringList& getSupportedExtensions();
 
-        static const QStringList& getSupportedExtensions();
+private:
+    friend class boost::serialization::access;
 
-    private:
-        friend class boost::serialization::access;
+    // Default constructor required for boost::serialization
+    DynamicTextureContent() {}
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            // serialize base class information
-            ar & boost::serialization::base_object<Content>(*this);
-        }
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        // serialize base class information (with NVP for xml archives)
+        ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Content);
+    }
 
-        void advance(ContentWindowManagerPtr window);
+    void preRenderUpdate(Factories& factories, ContentWindowPtr, WallToWallChannel&) override;
 
-        void renderFactoryObject(float tX, float tY, float tW, float tH);
+    void postRenderUpdate(Factories& factories, ContentWindowPtr window, WallToWallChannel&) override;
 };
 
 #endif

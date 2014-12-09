@@ -47,8 +47,8 @@
 #include <QtNetwork/QTcpSocket>
 #include <QQueue>
 
-using dc::Event;
 using dc::PixelStreamSegment;
+using dc::PixelStreamSegmentParameters;
 
 class NetworkListenerThread : public EventReceiver
 {
@@ -61,7 +61,7 @@ public:
 
 public slots:
 
-    void processEvent(Event event);
+    void processEvent(Event evt);
     void pixelStreamerClosed(QString uri);
 
     void eventRegistrationReply(QString uri, bool success);
@@ -106,9 +106,10 @@ private:
 
     void sendProtocolVersion();
     void sendBindReply(const bool successful);
-    void send(const Event &event);
+    void send(const Event &evt);
     void sendQuit();
     bool send(const MessageHeader& messageHeader);
+    void flushSocket();
 };
 
 #endif

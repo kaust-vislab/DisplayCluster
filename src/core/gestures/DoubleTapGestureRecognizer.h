@@ -40,9 +40,11 @@
 #ifndef DOUBLETAPGESTURERECOGNIZER_H
 #define DOUBLETAPGESTURERECOGNIZER_H
 
-#include <QtCore/QPointF>
-#include <QtCore/QTime>
-#include <QtGui/QGestureRecognizer>
+#include <QPointF>
+#include <QTime>
+#include <QGestureRecognizer>
+
+class DoubleTapGesture;
 
 /**
  * Gesture recognizer for a doubletap gesture. The doubletap is recognized
@@ -55,15 +57,15 @@ public:
     DoubleTapGestureRecognizer();
 
     /** @sa QGestureRecognizer::create */
-    virtual QGesture* create( QObject *target );
+    QGesture* create( QObject *target ) override;
 
     /** @sa QGestureRecognizer::recognize */
-    virtual QGestureRecognizer::Result recognize( QGesture* state,
-                                                  QObject* watched,
-                                                  QEvent* event );
+    QGestureRecognizer::Result recognize( QGesture* state,
+                                          QObject* watched,
+                                          QEvent* event ) override;
 
     /** @sa QGestureRecognizer::reset */
-    virtual void reset( QGesture* state );
+    void reset( QGesture* state ) override;
 
     /**
      * Installs the doubletap recognizer in the current QApplication.
@@ -84,9 +86,10 @@ public:
     static Qt::GestureType type();
 
 private:
-    QPointF _firstPoint;
-    QTime _firstPointTime;
-    static Qt::GestureType _type;
+    QGestureRecognizer::Result cancel( DoubleTapGesture* gesture );
+    QPointF firstPoint_;
+    QTime firstPointTime_;
+    static Qt::GestureType type_;
 };
 
 #endif

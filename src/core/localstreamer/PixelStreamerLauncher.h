@@ -47,7 +47,8 @@
 #include <QSize>
 
 class QProcess;
-class DisplayGroupManager;
+class PixelStreamWindowManager;
+class MasterConfiguration;
 
 /**
  * Launch Pixel Streamers as separate processes.
@@ -72,10 +73,10 @@ public:
     /**
      * Create a new PixelStreamerLauncher
      *
-     * @param displayGroupManager The DisplayGroupManager instance,
-     *        where the Stream windows will be rendered.
+     * @param windowManager Manages the windows of the streamers
+     * @param config The configuration for the default parameters
      */
-    PixelStreamerLauncher(DisplayGroupManager* displayGroupManager);
+    PixelStreamerLauncher(PixelStreamWindowManager& windowManager, const MasterConfiguration& config);
 
 public slots:
     /**
@@ -87,6 +88,15 @@ public slots:
      * @param url The webpage to open.
      */
     void openWebBrowser(const QPointF pos, const QSize size, const QString url);
+
+    /**
+     * Open the Dock using default parameters.
+     *
+     * A new dock instance is created if it was closed, otherwise the existing
+     * Dock instance is moved to the given position.
+     * @param pos The position of the center of the Dock
+     */
+    void openDock(const QPointF pos);
 
     /**
      * Open the Dock.
@@ -113,7 +123,8 @@ private:
     typedef std::map<QString, QProcess*> Streamers;
     Streamers processes_;
 
-    DisplayGroupManager* displayGroupManager_;
+    PixelStreamWindowManager& windowManager_;
+    const MasterConfiguration& config_;
 
     bool createDock(const QSize& size, const QString& rootDir);
 };

@@ -72,7 +72,7 @@ QGesture* PinchGestureRecognizer::create( QObject* target )
 }
 
 QGestureRecognizer::Result PinchGestureRecognizer::recognize( QGesture* state,
-                                                            QObject* watched,
+                                                            QObject*,
                                                             QEvent* event )
 {
     PinchGesture* gesture = static_cast<PinchGesture *>( state );

@@ -39,53 +39,46 @@
 #ifndef MARKER_H
 #define MARKER_H
 
-// this is a fraction of the tiled display width of 1
-#define MARKER_WIDTH 0.0025
-
-// number of seconds before a marker stops being rendered
-#define MARKER_TIMEOUT_SECONDS 5
-
-#include <QtGui>
-#include <QGLWidget>
+#include <QPointF>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/time_serialize.hpp>
+#include <boost/serialization/access.hpp>
 
-class Marker : public QObject {
-    Q_OBJECT
+/**
+ * A marker to represent touch points.
+ */
+class Marker
+{
+public:
+    /** Constructor. */
+    Marker();
 
-    public:
+    /** Set the position */
+    void setPosition(const QPointF& position);
 
-        Marker();
-        ~Marker();
+    /** Get the position. */
+    QPointF getPosition() const;
 
-        void setPosition(float x, float y);
-        void getPosition(float &x, float &y);
+    /** Update the internal timestamp without other modifications. */
+    void touch();
 
-        bool getActive();
+    /**
+     * Check if the marker is active.
+     * @return True if the marker position has been modified
+     *         during the last 5 seconds.
+     */
+    bool isActive(const boost::posix_time::ptime currentTime) const;
 
-        void render();
+private:
+    friend class boost::serialization::access;
 
-        void releaseTexture();
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        ar & position_;
+    }
 
-    signals:
-        void positionChanged();
-
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & x_;
-            ar & y_;
-            ar & updatedTimestamp_;
-        }
-
-        float x_;
-        float y_;
-        boost::posix_time::ptime updatedTimestamp_;
-
-        static GLuint textureId_;
+    QPointF position_;
+    boost::posix_time::ptime updatedTimestamp_;
 };
 
 #endif

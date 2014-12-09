@@ -47,7 +47,7 @@ namespace dcWebservice
 
 DefaultHandler::~DefaultHandler() {}
 
-ConstResponsePtr DefaultHandler::handle(const Request& request) const
+ConstResponsePtr DefaultHandler::handle(const Request&) const
 {
     return Response::NotFound();
 }

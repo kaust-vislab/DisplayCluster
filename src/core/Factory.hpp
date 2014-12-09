@@ -40,84 +40,88 @@
 #define FACTORY_HPP
 
 #include <map>
-#include <string>
 #include <boost/shared_ptr.hpp>
-#include <QtGui>
+#include <boost/signals2/signal.hpp>
+#include <QString>
+#include <QMutex>
 
-#include "globals.h"
 
 template <class T>
-class Factory {
+class Factory
+{
+public:
+    typedef void NewObjectSignature(T&);
+    typedef boost::function< NewObjectSignature > NewObjectFunc;
 
-    public:
+    Factory(const NewObjectFunc& slot)
+    {
+        newObjectSignal_.connect(slot);
+    }
 
-        boost::shared_ptr<T> getObject(const QString& uri)
+    boost::shared_ptr<T> getObject(const QString& uri)
+    {
+        QMutexLocker locker(&mapMutex_);
+
+        if(!map_.count(uri))
         {
-            QMutexLocker locker(&mapMutex_);
+            boost::shared_ptr<T> t(new T(uri));
+            newObjectSignal_(*t);
 
-            // see if we need to create the object
-            if(map_.count(uri) == 0)
-            {
-                boost::shared_ptr<T> t(new T(uri));
-
-                map_[uri] = t;
-            }
-
-            return map_[uri];
+            map_[uri] = t;
         }
 
-        void removeObject(const QString& uri)
+        return map_[uri];
+    }
+
+    void removeObject(const QString& uri)
+    {
+        QMutexLocker locker(&mapMutex_);
+
+        map_.erase(uri);
+    }
+
+    std::map<QString, boost::shared_ptr<T> > getMap()
+    {
+        QMutexLocker locker(&mapMutex_);
+
+        return map_;
+    }
+
+    void clear()
+    {
+        QMutexLocker locker(&mapMutex_);
+
+        map_.clear();
+    }
+
+    bool contains(const QString& uri) const
+    {
+        return map_.count(uri);
+    }
+
+    void clearStaleObjects(const uint64_t currentFrameIndex)
+    {
+        QMutexLocker locker(&mapMutex_);
+
+        typename std::map<QString, boost::shared_ptr<T> >::iterator it = map_.begin();
+
+        while(it != map_.end())
         {
-            QMutexLocker locker(&mapMutex_);
-
-            map_.erase(uri);
+            if(currentFrameIndex - it->second->getFrameIndex() > 1)
+                map_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
+            else
+                ++it;
         }
+    }
 
-        std::map<QString, boost::shared_ptr<T> > getMap()
-        {
-            QMutexLocker locker(&mapMutex_);
+private:
+    boost::signals2::signal< NewObjectSignature > newObjectSignal_;
 
-            return map_;
-        }
+    // mutex for thread-safe access to map
+    QMutex mapMutex_;
 
-        void clear()
-        {
-            QMutexLocker locker(&mapMutex_);
-
-            map_.clear();
-        }
-
-        bool contains(const QString& uri) const
-        {
-            return map_.count(uri);
-        }
-
-        void clearStaleObjects()
-        {
-            QMutexLocker locker(&mapMutex_);
-
-            typename std::map<QString, boost::shared_ptr<T> >::iterator it = map_.begin();
-
-            while(it != map_.end())
-            {
-                if(g_frameCount - it->second->getRenderedFrameIndex() > 1)
-                {
-                    map_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
-                }
-                else
-                {
-                    it++;
-                }
-            }
-        }
-
-    private:
-
-        // mutex for thread-safe access to map
-        QMutex mapMutex_;
-
-        // all existing objects
-        std::map<QString, boost::shared_ptr<T> > map_;
+    // all existing objects
+    std::map<QString, boost::shared_ptr<T> > map_;
 };
 
 #endif

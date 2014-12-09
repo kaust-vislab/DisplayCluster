@@ -42,28 +42,38 @@
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 
-class SVGContent : public Content {
+class SVGContent : public Content
+{
+public:
+    /**
+     * Constructor.
+     * @param uri The uri of the svg document
+     */
+    explicit SVGContent(const QString& uri);
 
-    public:
-        SVGContent(QString uri = "") : Content(uri) { }
+    /** Get the content type **/
+    CONTENT_TYPE getType() override;
 
-        CONTENT_TYPE getType();
+    /**
+     * Read SVG metadata.
+     * @return true on success, false if the URI is invalid or an error occured.
+    **/
+    bool readMetadata() override;
 
-        void getFactoryObjectDimensions(int &width, int &height);
+    static const QStringList& getSupportedExtensions();
 
-        static const QStringList& getSupportedExtensions();
+private:
+    friend class boost::serialization::access;
 
-    private:
-        friend class boost::serialization::access;
+    // Default constructor required for boost::serialization
+    SVGContent() {}
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            // serialize base class information
-            ar & boost::serialization::base_object<Content>(*this);
-        }
-
-        void renderFactoryObject(float tX, float tY, float tW, float tH);
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        // serialize base class information (with NVP for xml archives)
+        ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Content);
+    }
 };
 
 #endif

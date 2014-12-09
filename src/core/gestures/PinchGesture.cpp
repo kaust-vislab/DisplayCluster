@@ -40,8 +40,8 @@
 #include "PinchGesture.h"
 
 
-PinchGesture::PinchGesture( QObject* parent )
-    : QGesture( parent )
+PinchGesture::PinchGesture( QObject* parentObject )
+    : QGesture( parentObject )
     , _totalChangeFlags( NothingChanged )
     , _changeFlags( NothingChanged )
     , _totalScaleFactor( 1 )

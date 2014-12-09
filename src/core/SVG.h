@@ -41,14 +41,13 @@
 
 #include "FactoryObject.h"
 #include "types.h"
+#include "GLQuad.h"
 
 #include <QtSvg>
 #include <QGLWidget>
 #include <QGLFramebufferObject>
 #include <boost/shared_ptr.hpp>
 #include <map>
-
-class GLWindow;
 
 typedef boost::shared_ptr<QGLFramebufferObject> QGLFramebufferObjectPtr;
 
@@ -67,12 +66,13 @@ struct SVGTextureData
 class SVG : public FactoryObject
 {
 public:
-    SVG(QString uri);
+    SVG(const QString uri);
     ~SVG();
 
-    void getDimensions(int &width, int &height);
-    bool setImageData(QByteArray imageData);
-    void render(float tX, float tY, float tW, float tH);
+    bool isValid() const;
+
+    void getDimensions(int &width, int &height) const override;
+    void render(const QRectF& texCoords) override;
 
 private:
     // image location
@@ -89,16 +89,18 @@ private:
     int width_;
     int height_;
 
+    GLQuad quad_;
+
+    bool setImageData(const QByteArray& imageData);
+    void drawUnitTexturedQuad(const GLuint textureID);
+
     QRectF computeTextureRect(const QRectF& screenRect, const QRectF& fullRect,
-                              const float tX, const float tY, const float tW, const float tH) const;
+                              const QRectF& texCoords) const;
 
     void renderToTexture(const QRectF& textureRect, QGLFramebufferObjectPtr targetFbo);
 
     void saveGLState();
     void restoreGLState();
-
-    void drawTexturedQuad(const float posX, const float posY,
-                          const float width, const float height, const GLuint textureID);
 };
 
 #endif

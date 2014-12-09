@@ -39,99 +39,71 @@
 #ifndef GL_WINDOW_H
 #define GL_WINDOW_H
 
-#include "Factory.hpp"
-#include "Texture.h"
-#include "DynamicTexture.h"
-#include "PDF.h"
-#include "SVG.h"
-#include "Movie.h"
-#include "PixelStream.h"
-#include "FpsCounter.h"
 #include <QGLWidget>
+#include <QList>
 
-class WallConfiguration;
+#include "types.h"
 
+/**
+ * An OpenGL window used by Wall applications to render contents.
+ */
 class GLWindow : public QGLWidget
 {
 public:
-    GLWindow(int tileIndex);
-    GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
+    /**
+     * Create a new window.
+     * @param normalizedCoordinates The normalized window coordinates.
+     * @param windowRect The position and dimensions for the window in pixels.
+     * @param shareWidget An optional widget to share an existing GLContext.
+     *                    A new GLContext is allocated if not provided.
+     * @throw std::runtime_error if the initialization failed.
+     */
+    GLWindow(const QRectF& normalizedCoordinates, const QRect& windowRect,
+             QGLWidget* shareWidget = 0);
+
+    /** Destructor. */
     ~GLWindow();
 
-    /** Get the unique tile index identifier. */
-    int getTileIndex() const;
+    /** Add an object to be rendered. */
+    void addRenderable(RenderablePtr renderable);
 
-    Factory<Texture> & getTextureFactory();
-    Factory<DynamicTexture> & getDynamicTextureFactory();
-    Factory<PDF> &getPDFFactory();
-    Factory<SVG> & getSVGFactory();
-    Factory<Movie> & getMovieFactory();
-    Factory<PixelStream> & getPixelStreamFactory();
-
-    void insertPurgeTextureId(GLuint textureId);
-    void purgeTextures();
-
-    /** Must be called before destroying this object to clear all Contents and textures. */
-    void finalize();
+    /** Set the background color */
+    void setBackgroundColor(const QColor& color);
 
     /**
      * Is the given region visible in this window.
-     * @param rect The region in normalized global screen space, i.e. top-left
+     * @param region The region in normalized global screen space, i.e. top-left
      *        of tiled display is (0,0) and bottom-right is (1,1)
      * @return true if (partially) visible, false otherwise
      */
-    bool isRegionVisible(const QRectF& rect) const;
+    bool isRegionVisible(const QRectF& region) const;
 
-    /** Used by PDF and SVG renderers */
-    QRectF getProjectedPixelRect(const bool clampToWindowArea);
-
-    /** Draw an un-textured rectangle.
-     * @param x,y postion
-     * @param w,h dimensions
+    /**
+     * Get the region spanned by a unit rectangle {(0;0),(1;1)} in the current
+     * GL view.
+     * The region is in screen coordinates with the origin at the viewport's
+     * top-left corner.
+     * @param clampToViewportBorders Clamp to the visible part of the region.
+     * @return The region in pixel units.
+     * @deprecated
      */
-    static void drawRectangle(double x, double y, double w, double h);
+    static QRectF getProjectedPixelRect(const bool clampToViewportBorders);
 
 protected:
-    void initializeGL();
-    void paintGL();
-    void resizeGL(int width, int height);
+    /** @name Overloaded methods from QGLWidget */
+    //@{
+    void initializeGL() override;
+    void paintGL() override;
+    void resizeGL(int w, int h) override;
+    //@}
 
 private:
-    const WallConfiguration* configuration_;
+    QColor backgroundColor_;
+    QRectF normalizedCoordinates_;
+    QList<RenderablePtr> renderables_;
 
-    int tileIndex_;
-
-    // Postion and dimensions of the GLWindow in normalized Wall coordinates
-    double left_;
-    double right_;
-    double bottom_;
-    double top_;
-
-    Factory<Texture> textureFactory_;
-    Factory<DynamicTexture> dynamicTextureFactory_;
-    Factory<PDF> pdfFactory_;
-    Factory<SVG> svgFactory_;
-    Factory<Movie> movieFactory_;
-    Factory<PixelStream> pixelStreamFactory_;
-
-    // mutex and vector of texture id's to purge
-    // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
-    QMutex purgeTexturesMutex_;
-    std::vector<GLuint> purgeTextureIds_;
-
-    FpsCounter fpsCounter;
-
-    void renderBackgroundContent();
-    void renderContentWindows();
-    void renderMarkers();
-
+    void clear(const QColor& clearColor);
     void setOrthographicView();
-#if ENABLE_SKELETON_SUPPORT
-    bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
-#endif
-
-    void renderTestPattern();
-    void drawFps();
 };
 
 #endif

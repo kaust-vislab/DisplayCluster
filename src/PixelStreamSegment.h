@@ -50,12 +50,15 @@
 namespace dc
 {
 
+/**
+ * Image data and parameters for a single segment of a PixelStream.
+ */
 struct PixelStreamSegment
 {
-    // parameters; kept in a separate struct to simplify network transmission
+    /** Parameters of the segment. */
     PixelStreamSegmentParameters parameters;
 
-    // image data for segment
+    /** Image data of the segment. */
     QByteArray imageData;
 
 private:
@@ -77,7 +80,7 @@ private:
     {
         ar & parameters;
 
-        int size;
+        int size = 0;
         ar & size;
         imageData.resize(size);
 

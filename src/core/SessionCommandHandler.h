@@ -42,7 +42,7 @@
 
 #include "AbstractCommandHandler.h"
 
-class DisplayGroupManager;
+class DisplayGroup;
 
 /**
  * Handle session Commands.
@@ -52,22 +52,22 @@ class SessionCommandHandler : public AbstractCommandHandler
 public:
     /**
      * Constructor
-     * @param displayGroupManager The target DisplayGroupManager for the commands.
+     * @param displayGroup The target DisplayGroup for the commands.
      */
-    SessionCommandHandler(DisplayGroupManager& displayGroupManager);
+    SessionCommandHandler(DisplayGroup& displayGroup);
 
     /** Get the type of commands handled by the implementation. */
-    virtual CommandType getType() const;
+    CommandType getType() const override;
 
     /**
      * Handle a session Command.
      * @param command The Command to handle.
      * @param senderUri The identifier of the sender (optional).
      */
-    virtual void handle(const Command& command, const QString& senderUri = QString());
+    void handle(const Command& command, const QString& senderUri = QString()) override;
 
 private:
-    DisplayGroupManager& displayGroupManager_;
+    DisplayGroup& displayGroup_;
 };
 
 #endif // SESSIONCOMMANDHANDLER_H

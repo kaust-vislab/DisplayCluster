@@ -39,6 +39,7 @@
 #endif
 
 #ifdef PICTUREFLOW_QT4
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 #include <QApplication>
 #include <QCache>
 #include <QHash>
@@ -243,8 +244,8 @@ public:
   PictureFlowSoftwareRenderer();
   ~PictureFlowSoftwareRenderer();
 
-  virtual void init();
-  virtual void paint();
+  void init() override;
+  void paint() override;
 
 private:
   QSize size;
@@ -440,14 +441,14 @@ void PictureFlowAnimator::update()
 
   if(step > 0)
   {
-    PFreal ftick = (neg * PFREAL_ONE) >> 16;
+    ftick = (neg * PFREAL_ONE) >> 16;
     state->rightSlides[0].angle = -(neg * state->angle) >> 16;
     state->rightSlides[0].cx = fmul(state->offsetX, ftick);
     state->rightSlides[0].cy = fmul(state->offsetY, ftick);
   }
   else
   {
-    PFreal ftick = (pos * PFREAL_ONE) >> 16;
+    ftick = (pos * PFREAL_ONE) >> 16;
     state->leftSlides[0].angle = (pos * state->angle) >> 16;
     state->leftSlides[0].cx = -fmul(state->offsetX, ftick);
     state->leftSlides[0].cy = fmul(state->offsetY, ftick);
@@ -464,27 +465,27 @@ void PictureFlowAnimator::update()
   int nright = state->rightSlides.count();
   int fade = pos / 256;
 
-  for(int index = 0; index < nleft; index++)
+  for(int i = 0; i < nleft; i++)
   {
     int blend = 256;
-    if(index == nleft-1)
+    if(i == nleft-1)
       blend = (step > 0) ? 0 : 128-fade/2;
-    if(index == nleft-2)
+    if(i == nleft-2)
       blend = (step > 0) ? 128-fade/2 : 256-fade/2;
-    if(index == nleft-3)
+    if(i == nleft-3)
       blend = (step > 0) ? 256-fade/2 : 256;
-    state->leftSlides[index].blend = blend;
+    state->leftSlides[i].blend = blend;
   }
-  for(int index = 0; index < nright; index++)
+  for(int i = 0; i < nright; i++)
   {
-    int blend = (index < nright-2) ? 256 : 128;
-    if(index == nright-1)
+    int blend = (i < nright-2) ? 256 : 128;
+    if(i == nright-1)
       blend = (step > 0) ? fade/2 : 0;
-    if(index == nright-2)
+    if(i == nright-2)
       blend = (step > 0) ? 128+fade/2 : fade/2;
-    if(index == nright-3)
+    if(i == nright-3)
       blend = (step > 0) ? 256 : 128+fade/2;
-    state->rightSlides[index].blend = blend;
+    state->rightSlides[i].blend = blend;
   }
 
 }
@@ -727,9 +728,9 @@ QImage* PictureFlowSoftwareRenderer::surface(int slideIndex)
       int sh = state->slideHeight;
 
 #ifdef PICTUREFLOW_QT4
-      QImage img = QImage(sw, sh, QImage::Format_RGB32);
+      QImage slideImage = QImage(sw, sh, QImage::Format_RGB32);
 
-      QPainter painter(&img);
+      QPainter painter(&slideImage);
       QPoint p1(sw*4/10, 0);
       QPoint p2(sw*6/10, sh);
       QLinearGradient linearGrad(p1, p2);
@@ -752,7 +753,7 @@ QImage* PictureFlowSoftwareRenderer::surface(int slideIndex)
       QImage img = pixmap.convertToImage();
 #endif
 
-      blankSurface = prepareSurface(&img, sw, sh, bgcolor, state->reflectionEffect);
+      blankSurface = prepareSurface(&slideImage, sw, sh, bgcolor, state->reflectionEffect);
     }
     return blankSurface;
   }
@@ -961,7 +962,7 @@ public:
 };
 
 
-PictureFlow::PictureFlow(QWidget* parent): QWidget(parent)
+PictureFlow::PictureFlow(QWidget* widget_): QWidget(widget_)
 {
   d = new PictureFlowPrivate;
 
@@ -1026,10 +1027,10 @@ QSize PictureFlow::slideSize() const
   return QSize(d->state->slideWidth, d->state->slideHeight);
 }
 
-void PictureFlow::setSlideSize(QSize size)
+void PictureFlow::setSlideSize(const QSize newSlideSize)
 {
-  d->state->slideWidth = size.width();
-  d->state->slideHeight = size.height();
+  d->state->slideWidth = newSlideSize.width();
+  d->state->slideHeight = newSlideSize.height();
   d->state->reposition();
   triggerRender();
 }
@@ -1181,49 +1182,48 @@ void PictureFlow::showSlide(int index)
   emit(targetIndexChanged(d->animator->target));
 }
 
-void PictureFlow::keyPressEvent(QKeyEvent* event)
+void PictureFlow::keyPressEvent(QKeyEvent* keyEvent)
 {
-  if(event->key() == Qt::Key_Left)
+  if(keyEvent->key() == Qt::Key_Left)
   {
-    if(event->modifiers() == Qt::ControlModifier)
+    if(keyEvent->modifiers() == Qt::ControlModifier)
       showSlide(centerIndex()-10);
     else
       showPrevious();
-    event->accept();
+    keyEvent->accept();
     return;
   }
 
-  if(event->key() == Qt::Key_Right)
+  if(keyEvent->key() == Qt::Key_Right)
   {
-    if(event->modifiers() == Qt::ControlModifier)
+    if(keyEvent->modifiers() == Qt::ControlModifier)
       showSlide(centerIndex()+10);
     else
       showNext();
-    event->accept();
+    keyEvent->accept();
     return;
   }
 
-  event->ignore();
+  keyEvent->ignore();
 }
 
-void PictureFlow::mousePressEvent(QMouseEvent* event)
+void PictureFlow::mousePressEvent(QMouseEvent* mouseEvent)
 {
-  if(event->x() > width()/2)
+  if(mouseEvent->x() > width()/2)
     showNext();
   else
     showPrevious();
 }
 
-void PictureFlow::paintEvent(QPaintEvent* event)
+void PictureFlow::paintEvent(QPaintEvent*)
 {
-  Q_UNUSED(event);
   d->renderer->paint();
 }
 
-void PictureFlow::resizeEvent(QResizeEvent* event)
+void PictureFlow::resizeEvent(QResizeEvent* resizeEvt)
 {
   triggerRender();
-  QWidget::resizeEvent(event);
+  QWidget::resizeEvent(resizeEvt);
 }
 
 void PictureFlow::updateAnimation()

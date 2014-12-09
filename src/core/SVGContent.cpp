@@ -37,19 +37,35 @@
 /*********************************************************************/
 
 #include "SVGContent.h"
-#include "globals.h"
-#include "SVG.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
 
+#include "SVG.h"
 #include <boost/serialization/export.hpp>
 #include "serializationHelpers.h"
+#include <QFileInfo>
 
 BOOST_CLASS_EXPORT_GUID(SVGContent, "SVGContent")
+
+SVGContent::SVGContent(const QString& uri)
+    : Content(uri)
+{}
 
 CONTENT_TYPE SVGContent::getType()
 {
     return CONTENT_TYPE_SVG;
+}
+
+bool SVGContent::readMetadata()
+{
+    QFileInfo file( getURI( ));
+    if(!file.exists() || !file.isReadable())
+        return false;
+
+    SVG svg(getURI());
+    if (!svg.isValid())
+        return false;
+
+    svg.getDimensions( size_.rwidth(), size_.rheight( ));
+    return true;
 }
 
 const QStringList& SVGContent::getSupportedExtensions()
@@ -62,14 +78,4 @@ const QStringList& SVGContent::getSupportedExtensions()
     }
 
     return extensions;
-}
-
-void SVGContent::getFactoryObjectDimensions(int &width, int &height)
-{
-    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->getDimensions(width, height);
-}
-
-void SVGContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

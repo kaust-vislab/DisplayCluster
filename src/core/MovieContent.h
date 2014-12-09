@@ -42,30 +42,38 @@
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 
-class MovieContent : public Content {
+class MovieContent : public Content
+{
+public:
+    /** Create a MovieContent from the given uri. */
+    explicit MovieContent(const QString& uri);
 
-    public:
-        MovieContent(QString uri = "") : Content(uri) { }
+    /** Get the content type **/
+    CONTENT_TYPE getType() override;
 
-        CONTENT_TYPE getType();
+    /**
+     * Read movie informations from the source URI.
+     * @return true on success, false if the URI is invalid or an error occured.
+    **/
+    bool readMetadata() override;
 
-        void getFactoryObjectDimensions(int &width, int &height);
+    static const QStringList& getSupportedExtensions();
 
-        static const QStringList& getSupportedExtensions();
+    void preRenderUpdate(Factories&, ContentWindowPtr, WallToWallChannel& wallToWallChannel) override;
+    void postRenderUpdate(Factories& factories, ContentWindowPtr window, WallToWallChannel& wallToWallChannel) override;
 
-    private:
-        friend class boost::serialization::access;
+private:
+    friend class boost::serialization::access;
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            // serialize base class information
-            ar & boost::serialization::base_object<Content>(*this);
-        }
+    // Default constructor required for boost::serialization
+    MovieContent() {}
 
-        void advance(ContentWindowManagerPtr window);
-
-        void renderFactoryObject(float tX, float tY, float tW, float tH);
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        // serialize base class information (with NVP for xml archives)
+        ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Content);
+    }
 };
 
 #endif

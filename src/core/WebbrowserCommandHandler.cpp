@@ -42,13 +42,13 @@
 #include "Command.h"
 #include "localstreamer/PixelStreamerLauncher.h"
 
-#include "ContentWindowManager.h"
-#include "DisplayGroupManager.h"
+#include "ContentWindow.h"
+#include "PixelStreamWindowManager.h"
 
-WebbrowserCommandHandler::WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
+WebbrowserCommandHandler::WebbrowserCommandHandler(PixelStreamWindowManager& windowManager,
                                                    PixelStreamerLauncher& pixelStreamLauncher,
                                                    const QString& defaultURL)
-    : displayGroupManager_(displayGroupManager)
+    : windowManager_(windowManager)
     , defaultURL_(defaultURL)
 {
     connect(this, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
@@ -69,9 +69,10 @@ void WebbrowserCommandHandler::handle(const Command& command, const QString& sen
     QPointF position;
 
     // Center the new content where the dock is
-    ContentWindowManagerPtr parentWindow = displayGroupManager_.getContentWindowManager(senderUri);
+    // TODO: DISCL-230
+    ContentWindowPtr parentWindow = windowManager_.getContentWindow(senderUri);
     if (parentWindow)
-        position = parentWindow->getCoordinates().topLeft();
+        position = parentWindow->getCoordinates().center();
 
     emit openWebBrowser(position, QSize(), url);
 }

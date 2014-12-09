@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
+/*                          Raphael Dumusc <raphael.dumusc@epfl.ch>  */
+/*                          Stefan.Eilemann@epfl.ch                  */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -39,13 +40,11 @@
 
 #include "ImageSegmenter.h"
 
-#include "ImageWrapper.h"
-
-#include "log.h"
-#include "PixelStreamSegment.h"
-
-// Image Jpeg compression
 #include "ImageJpegCompressor.h"
+#include "ImageWrapper.h"
+#include "PixelStreamSegment.h"
+#include "log.h"
+
 #include <QtConcurrentMap>
 
 namespace dc
@@ -57,16 +56,12 @@ ImageSegmenter::ImageSegmenter()
 {
 }
 
-PixelStreamSegments ImageSegmenter::generateSegments(const ImageWrapper &image) const
+bool ImageSegmenter::generate( const ImageWrapper& image,
+                               const Handler& handler ) const
 {
     if (image.compressionPolicy == COMPRESSION_ON)
-    {
-        return generateJpegSegments(image);
-    }
-    else
-    {
-        return generateRawSegments(image);
-    }
+        return generateJpeg( image, handler );
+    return generateRaw( image, handler );
 }
 
 /**
@@ -77,93 +72,97 @@ PixelStreamSegments ImageSegmenter::generateSegments(const ImageWrapper &image) 
  */
 struct SegmentCompressionWrapper
 {
-    PixelStreamSegment* segment;
+    PixelStreamSegment segment;
+    ImageSegmenter::Handler handler;
     const ImageWrapper* image;
+    bool* result;
 
-    SegmentCompressionWrapper( PixelStreamSegment& segment,
-                               const ImageWrapper& image )
-        : segment(&segment)
-        , image(&image)
+    SegmentCompressionWrapper( const ImageWrapper& image_,
+                               const ImageSegmenter::Handler& handler_,
+                               bool& res )
+        : handler( handler_ )
+        , image( &image_ )
+        , result( &res )
     {}
 };
 
 // use libjpeg-turbo for JPEG conversion
-void computeJpegMapped(SegmentCompressionWrapper& segmentWrapper)
+void computeJpeg( SegmentCompressionWrapper& task )
 {
-    QRect imageRegion(segmentWrapper.segment->parameters.x - segmentWrapper.image->x,
-                      segmentWrapper.segment->parameters.y - segmentWrapper.image->y,
-                      segmentWrapper.segment->parameters.width,
-                      segmentWrapper.segment->parameters.height);
-
+    QRect imageRegion( task.segment.parameters.x - task.image->x,
+                       task.segment.parameters.y - task.image->y,
+                       task.segment.parameters.width,
+                       task.segment.parameters.height);
     ImageJpegCompressor compressor;
-    segmentWrapper.segment->imageData = compressor.computeJpeg(*segmentWrapper.image, imageRegion);
 
+    task.segment.imageData = compressor.computeJpeg( *task.image, imageRegion );
+    if( !task.handler( task.segment ))
+        *task.result = false;
 }
 
-PixelStreamSegments ImageSegmenter::generateJpegSegments(
-    const ImageWrapper& image ) const
+bool ImageSegmenter::generateJpeg( const ImageWrapper& image,
+                                   const Handler& handler ) const
 {
-    const SegmentParameters& segmentParams = generateSegmentParameters(image);
+    const SegmentParameters& segmentParams = generateSegmentParameters( image );
 
     // The resulting Jpeg segments
-    PixelStreamSegments segments;
+    bool result = true;
+    std::vector<SegmentCompressionWrapper> tasks;
+    for( SegmentParameters::const_iterator it = segmentParams.begin();
+         it != segmentParams.end(); ++it )
+    {
+        SegmentCompressionWrapper task( image, handler, result );
+        task.segment.parameters = *it;
+        tasks.push_back( task );
+    }
+
+    // create JPEGs for each segment, in parallel
+    QtConcurrent::blockingMap( tasks, &computeJpeg );
+    return result;
+}
+
+bool ImageSegmenter::generateRaw( const ImageWrapper &image,
+                                  const Handler& handler ) const
+{
+    const SegmentParameters& segmentParams = generateSegmentParameters( image );
+
+    // resulting Raw segments
     for( SegmentParameters::const_iterator it = segmentParams.begin();
          it != segmentParams.end(); ++it )
     {
         PixelStreamSegment segment;
         segment.parameters = *it;
-        segments.push_back(segment);
-    }
-
-    // Temporary segment wrappers for compression
-    {
-        std::vector<SegmentCompressionWrapper> segmentWrappers;
-        for (PixelStreamSegments::iterator it = segments.begin(); it != segments.end(); it++)
-        {
-            segmentWrappers.push_back(SegmentCompressionWrapper(*it, image));
-        }
-
-        // create JPEGs for each segment, in parallel
-        QtConcurrent::blockingMap<std::vector<SegmentCompressionWrapper> >(segmentWrappers, &computeJpegMapped);
-    }
-
-    return segments;
-}
-
-PixelStreamSegments ImageSegmenter::generateRawSegments(const ImageWrapper &image) const
-{
-    const SegmentParameters& segmentParams = generateSegmentParameters(image);
-
-    // The resulting Raw segments
-    PixelStreamSegments segments;
-
-    for (SegmentParameters::const_iterator it = segmentParams.begin(); it != segmentParams.end(); it++)
-    {
-        PixelStreamSegment segment;
-        segment.parameters = *it;
-        segment.imageData.reserve(segment.parameters.width * segment.parameters.height * image.getBytesPerPixel());
+        segment.imageData.reserve( segment.parameters.width *
+                                   segment.parameters.height *
+                                   image.getBytesPerPixel( ));
 
         if (segmentParams.size() == 1)
         {
             // If we are not segmenting the image, just append the image data
-            segment.imageData.append((const char*)image.data, image.getBufferSize());
+            segment.imageData.append((const char*)image.data,
+                                     int(image.getBufferSize()));
         }
-        else
+        else // Copy the image subregion
         {
-            // Copy the image subregion
-            const size_t imagePitch = image.width * image.getBytesPerPixel(); // assume imageBuffer isn't padded
-            const char* lineData = (const char*)image.data + segment.parameters.y*imagePitch + segment.parameters.x*image.getBytesPerPixel();
+            // assume imageBuffer isn't padded
+            const size_t imagePitch = image.width * image.getBytesPerPixel();
+            const char* lineData = (const char*)image.data +
+                segment.parameters.y*imagePitch +
+                segment.parameters.x*image.getBytesPerPixel();
+
             for (unsigned int i=0; i < segment.parameters.height; ++i)
             {
-                segment.imageData.append( lineData, segment.parameters.width * image.getBytesPerPixel() );
+                segment.imageData.append( lineData, segment.parameters.width *
+                                                    image.getBytesPerPixel( ));
                 lineData += imagePitch;
             }
         }
 
-        segments.push_back(segment);
+        if( !handler( segment ))
+            return false;
     }
 
-    return segments;
+    return true;
 }
 
 void ImageSegmenter::setNominalSegmentDimensions(const unsigned int nominalSegmentWidth, const unsigned int nominalSegmentHeight)

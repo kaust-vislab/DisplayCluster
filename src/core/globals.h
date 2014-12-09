@@ -39,20 +39,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include <mpi.h>
-#include <stdint.h>
-#include "types.h"
-
 class Configuration;
-class MainWindow;
-
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-
 extern Configuration* g_configuration;
-extern DisplayGroupManagerPtr g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern uint64_t g_frameCount;
 
 #endif

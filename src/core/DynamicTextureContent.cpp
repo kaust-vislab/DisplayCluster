@@ -37,19 +37,33 @@
 /*********************************************************************/
 
 #include "DynamicTextureContent.h"
-#include "globals.h"
+
 #include "DynamicTexture.h"
-#include "MainWindow.h"
-#include "GLWindow.h"
 #include "serializationHelpers.h"
+#include "Factories.h"
 
 #include <boost/serialization/export.hpp>
 
 BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
 
+DynamicTextureContent::DynamicTextureContent(const QString& uri)
+    : Content(uri)
+{}
+
 CONTENT_TYPE DynamicTextureContent::getType()
 {
     return CONTENT_TYPE_DYNAMIC_TEXTURE;
+}
+
+bool DynamicTextureContent::readMetadata()
+{
+    QFileInfo file( getURI( ));
+    if (!file.exists() || !file.isReadable())
+        return false;
+
+    const DynamicTexture dynamicTexture(getURI());
+    dynamicTexture.getDimensions( size_.rwidth(), size_.rheight( ));
+    return true;
 }
 
 const QStringList& DynamicTextureContent::getSupportedExtensions()
@@ -68,21 +82,15 @@ const QStringList& DynamicTextureContent::getSupportedExtensions()
     return extensions;
 }
 
-void DynamicTextureContent::advance(ContentWindowManagerPtr window)
+void DynamicTextureContent::preRenderUpdate(Factories& factories, ContentWindowPtr, WallToWallChannel&)
+{
+    factories.getDynamicTextureFactory().getObject(getURI())->preRenderUpdate();
+}
+
+void DynamicTextureContent::postRenderUpdate(Factories& factories, ContentWindowPtr, WallToWallChannel&)
 {
     if( blockAdvance_ )
         return;
 
-    // recall that advance() is called after rendering and before g_frameCount is incremented for the current frame
-    g_mainWindow->getGLWindow()->getDynamicTextureFactory().getObject(getURI())->clearOldChildren(g_frameCount);
-}
-
-void DynamicTextureContent::getFactoryObjectDimensions(int &width, int &height)
-{
-    g_mainWindow->getGLWindow()->getDynamicTextureFactory().getObject(getURI())->getDimensions(width, height);
-}
-
-void DynamicTextureContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getDynamicTextureFactory().getObject(getURI())->render(tX, tY, tW, tH);
+    factories.getDynamicTextureFactory().getObject(getURI())->postRenderUpdate();
 }

@@ -56,6 +56,9 @@ public:
     /** Special case: PixelStreamContent type cannot be derived from its uri. */
     static ContentPtr getPixelStreamContent(const QString& uri);
 
+    /** Get a Content object representing a loading error. */
+    static ContentPtr getErrorContent();
+
     /** Get all the supported file extensions. */
     static const QStringList& getSupportedExtensions();
 

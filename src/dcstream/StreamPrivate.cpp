@@ -42,10 +42,11 @@
 
 #include "log.h"
 
+#include "StreamSendWorker.h"
 #include "PixelStreamSegment.h"
 #include "PixelStreamSegmentParameters.h"
-#include "Stream.h" // For defaultCompressionQuality
 
+#include <boost/thread/thread.hpp>
 #define SEGMENT_SIZE 512
 
 namespace dc
@@ -56,6 +57,7 @@ StreamPrivate::StreamPrivate( const std::string &name,
     : name_(name)
     , dcSocket_( address )
     , registeredForEvents_(false)
+    , sendWorker_( 0 )
 {
     imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
 
@@ -64,14 +66,15 @@ StreamPrivate::StreamPrivate( const std::string &name,
 
     if( dcSocket_.isConnected( ))
     {
-        // Open a window for the PixelStream
-        MessageHeader mh( MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_ );
+        const MessageHeader mh( MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_ );
         dcSocket_.send( mh, QByteArray( ));
     }
 }
 
 StreamPrivate::~StreamPrivate()
 {
+    delete sendWorker_;
+
     if( !dcSocket_.isConnected( ))
         return;
 
@@ -81,21 +84,54 @@ StreamPrivate::~StreamPrivate()
     registeredForEvents_ = false;
 }
 
+bool StreamPrivate::send( const ImageWrapper& image )
+{
+    if( image.compressionPolicy != COMPRESSION_ON &&
+        image.pixelFormat != dc::RGBA )
+    {
+        put_flog(LOG_ERROR, "Currently, RAW images can only be sent in RGBA "
+                            "format. Other formats support remain to be implemented.");
+        return false;
+    }
+
+    const ImageSegmenter::Handler sendFunc =
+        boost::bind( &StreamPrivate::sendPixelStreamSegment, this, _1 );
+    return imageSegmenter_.generate( image, sendFunc );
+}
+
+Stream::Future StreamPrivate::asyncSend( const ImageWrapper& image )
+{
+    if( !sendWorker_ )
+        sendWorker_ = new StreamSendWorker( *this );
+
+    return sendWorker_->enqueueImage( image );
+}
+
+bool StreamPrivate::finishFrame()
+{
+    // Open a window for the PixelStream
+    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME, 0, name_);
+    return dcSocket_.send(mh, QByteArray());
+}
+
 bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
 {
     // Create message header
-    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    const uint32_t segmentSize(sizeof(PixelStreamSegmentParameters) +
+                               segment.imageData.size());
     MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM, segmentSize, name_);
 
     // This byte array will hold the message to be sent over the socket
     QByteArray message;
 
     // Message payload part 1: segment parameters
-    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
+    message.append( (const char *)(&segment.parameters),
+                    sizeof(PixelStreamSegmentParameters));
 
     // Message payload part 2: image data
     message.append(segment.imageData);
 
+    QMutexLocker locker( &sendLock_ );
     return dcSocket_.send(mh, message);
 }
 

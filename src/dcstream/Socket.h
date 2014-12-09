@@ -39,9 +39,14 @@
 #ifndef DC_SOCKET_H
 #define DC_SOCKET_H
 
+#ifdef _WIN32
+typedef __int32 int32_t;
+#endif
+
 #include <string>
 #include <QByteArray>
 #include <QObject>
+#include <dc/api.h>
 
 struct MessageHeader;
 class QTcpSocket;
@@ -65,13 +70,13 @@ public:
      * @param hostname The target host (IP address or hostname)
      * @param port The target port
      */
-    Socket(const std::string& hostname, const unsigned short port = defaultPortNumber_);
+    DC_API Socket(const std::string& hostname, const unsigned short port = defaultPortNumber_);
 
     /** Destruct a Socket, disconnecting from host. */
-    ~Socket();
+    DC_API ~Socket();
 
     /** Is the Socket connected */
-    bool isConnected() const;
+    DC_API bool isConnected() const;
 
     /**
      * Is there a pending message
@@ -101,12 +106,16 @@ public:
      */
     bool receive(MessageHeader & messageHeader, QByteArray & message);
 
+    /** Get the protocol version of the remote host */
+    int32_t getRemoteProtocolVersion() const;
+
 signals:
     /** Signal that the socket has been disconnected. */
     void disconnected();
 
 private:
     QTcpSocket* socket_;
+    int32_t remoteProtocolVersion_;
 
     bool connect(const std::string &hostname, const unsigned short port);
     bool checkProtocolVersion();

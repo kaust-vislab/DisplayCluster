@@ -40,7 +40,7 @@
 #define PIXELSTREAMSEGMENTPARAMETERS_H
 
 #ifdef _WIN32
-    typedef __uint32 uint32_t;
+    typedef unsigned __int32 uint32_t;
 #else
     #include <stdint.h>
 #endif
@@ -56,16 +56,16 @@ namespace dc
 struct PixelStreamSegmentParameters
 {
     /** @name Coordinates */
-    /*@{*/
+    //@{
     uint32_t x;  /**< The x position in pixels. */
     uint32_t y;  /**< The y position in pixels. */
-    /*@}*/
+    //@}
 
     /** @name Dimensions */
-    /*@{*/
+    //@{
     uint32_t width;   /**< The width in pixels. */
     uint32_t height;  /**< The height in pixels. */
-    /*@}*/
+    //@}
 
     /** Is the image raw pixel data or compressed in jpeg format */
     bool compressed;
