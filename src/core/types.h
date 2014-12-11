@@ -64,7 +64,7 @@ struct PixelStreamFrame;
 namespace dc
 {
 struct PixelStreamSegment;
-class Event;
+struct Event;
 }
 using dc::PixelStreamSegment;
 using dc::Event;
