@@ -25,7 +25,7 @@ brew install freeglut
 
 brew install qt
 brew install poppler --with-qt
-brew install mpich2
+brew install mpich2 --without-fortran
 brew install gcc --without-multilib
 brew install fcgi
 brew install boost
