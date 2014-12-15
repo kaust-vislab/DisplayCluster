@@ -1,6 +1,6 @@
 # DisplayCluster
 
-DisplayCluster is a software environment for interactively driving large-scale tiled displays. 
+DisplayCluster is a software environment for interactively driving large-scale tiled displays.
 
 ## Documentation
 
@@ -23,12 +23,13 @@ DisplayCluster provides the following functionality:
   module load python/2.7.3
   module load qt/4.8.1
   module load fcgi/2.4.1
+  module load TUIO/1.4
 
-  git clone https://github.com/kaust-vislab/Buildyard.git
-  cd Buildyard
-  git clone https://github.com/BlueBrain/config.git config.bluebrain
-  git clone https://github.com/kaust-vislab/config.local.git config.local
-  make DisplayCluster
+  git clone https://github.com/kaust-vislab/DisplayCluster.git
+  cd DisplayCluster
+  mkdir build
+  cd build
+  cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/your/custom/install/dir
 ```
 
 ## Original Project
@@ -36,7 +37,3 @@ DisplayCluster provides the following functionality:
 This version of DisplayCluster is a fork of the original project by the Texas Advanced Computing Center, Austin:
 
 https://github.com/TACC/DisplayCluster
-
-
-
-
