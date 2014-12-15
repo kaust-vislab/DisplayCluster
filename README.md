@@ -29,9 +29,11 @@ brew install ffmpeg
 
 ```
   git clone https://github.com/kaust-vislab/DisplayCluster.git
-  mkdir DisplayCluster/build
-  cd DisplayCluster/build
-  cmake ..
+  cd DisplayCluster
+  git checkout osx # checkout osx branch
+  mkdir build
+  cd build
+  ccmake ..
   make
 ```
 
