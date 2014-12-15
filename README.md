@@ -28,7 +28,7 @@ brew install ffmpeg
 ```
 
 ```
-  git clone https://github.com/BlueBrain/DisplayCluster.git
+  git clone https://github.com/kaust-vislab/DisplayCluster.git
   mkdir DisplayCluster/build
   cd DisplayCluster/build
   cmake ..
@@ -38,7 +38,7 @@ brew install ffmpeg
 Or using Buildyard:
 
 ```
-  git clone https://github.com/Eyescale/Buildyard.git
+  git clone https://github.com/kaust-vislab/Buildyard.git
   cd Buildyard
   git clone https://github.com/BlueBrain/config.git config.bluebrain
   git clone https://github.com/kaust-vislab/config.local.git config.local
