@@ -25,7 +25,13 @@ brew install fcgi
 brew install boost
 brew install jpeg-turbo
 brew install ffmpeg
+brew tap kaust-vislab/kvl
+brew install --HEAD tuio
 ```
+
+Note that the Formulae for `tuio` is not available by default on homebrew, so you would have to use the homebrew-kvl tap.
+
+
 
 ```
   git clone https://github.com/kaust-vislab/DisplayCluster.git
