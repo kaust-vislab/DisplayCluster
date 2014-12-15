@@ -14,6 +14,18 @@ DisplayCluster provides the following functionality:
 * [Documentation](http://bluebrain.github.io/DisplayCluster-0.2/index.html)
 
 ## Building from Source
+OSX Build Pre-requisites
+
+```
+brew install qt
+brew install poppler --with-qt
+brew install mpich2 --without-fortran
+brew install gcc --without-multilib
+brew install fcgi
+brew install boost
+brew install jpeg-turbo
+brew install ffmpeg
+```
 
 ```
   git clone https://github.com/BlueBrain/DisplayCluster.git
