@@ -24,7 +24,7 @@ DisplayCluster provides the following functionality:
   module load qt/4.8.1
   module load fcgi/2.4.1
 
-  git clone https://github.com/Eyescale/Buildyard.git
+  git clone https://github.com/kaust-vislab/Buildyard.git
   cd Buildyard
   git clone https://github.com/BlueBrain/config.git config.bluebrain
   git clone https://github.com/kaust-vislab/config.local.git config.local
