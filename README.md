@@ -26,7 +26,7 @@ brew install boost --with-mpi
 brew install jpeg-turbo
 brew install ffmpeg
 brew tap kaust-vislab/kvl
-brew install --HEAD tuio
+brew install tuio
 ```
 
 Note that the Formulae for `tuio` is not available by default on homebrew, so you would have to use the homebrew-kvl tap.
