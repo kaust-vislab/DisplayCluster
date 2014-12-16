@@ -22,7 +22,7 @@ brew install poppler --with-qt
 brew install mpich2 --without-fortran
 brew install gcc --without-multilib
 brew install fcgi
-brew install boost
+brew install boost --with-mpi
 brew install jpeg-turbo
 brew install ffmpeg
 brew tap kaust-vislab/kvl
