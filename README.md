@@ -39,11 +39,11 @@ Note that the Formulae for `tuio` is not available by default on homebrew, so yo
   git checkout osx # checkout osx branch
   mkdir build
   cd build
-  ccmake ..
+  cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-w -Wno-deprecated-register -Wno-error=shadow -I/opt/X11/include" -DCMAKE_C_FLAGS="-w -Wno-deprecated-register -Wno-error=shadow -I/opt/X11/include" 
   make
 ```
 
-Or using Buildyard:
+Or using Buildyard (Not recommended for osx builds):
 
 ```
   git clone https://github.com/kaust-vislab/Buildyard.git
