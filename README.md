@@ -43,15 +43,9 @@ Note that the Formulae for `tuio` is not available by default on homebrew, so yo
   make
 ```
 
-Or using Buildyard (Not recommended for osx builds):
+## Packaging DesktopStreamer for osx Distribution
 
-```
-  git clone https://github.com/kaust-vislab/Buildyard.git
-  cd Buildyard
-  git clone https://github.com/BlueBrain/config.git config.bluebrain
-  git clone https://github.com/kaust-vislab/config.local.git config.local
-  make DisplayCluster
-```
+TBD
 
 ## Original Project
 
