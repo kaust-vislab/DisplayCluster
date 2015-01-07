@@ -11,6 +11,13 @@
 #
 # Commandline:
 # $ perl DS-perp-pkg.pl <path>/DesktopStreamer.app
+# 
+# Non-base case:
+# * Given directory isn't present -> Message on stdout and exit
+# * Given directory is not an .app -> Message on stdout and exit
+# * Executable not persent -> Message on stdout and exit
+# * Dependencies with @executable_path prefix [Cannot handle yet]
+# * Dependencies with no absolute path [Cannot handle yet]
 ################################################################################
 
 use strict;
@@ -20,18 +27,29 @@ use 5.010;
 # Special variables
 # $debug = 1 will output a lot of text to stdout
 my $debug = 0;
-# $readable_pmdoc will generate XML files which are nicely formatted for humans
+# $readable_pmdoc = 1 will generate XML files which are nicely formatted
 my $readable_pmdoc = 0;
 
 # Assuming that the path to DesktopStreamer.app is given as command line arg
 my $app_path = shift(@ARGV);
+# Error checking
+if (substr($app_path, -4) ne ".app")
+{
+    print "The given path $app_path isn't to an app. Exiting!\n";
+    exit;
+}
+if (!(-d $app_path))
+{
+    print "The given path $app_path doesn't exist. Exiting!\n";
+    exit;
+}
 
 ########################################
 # Create the subdirectories
 ########################################
 # Create Frameworks subdirectory
 my $dst_framework_path = $app_path . "/Contents/Frameworks";
-mkdir $dst_framework_path,0777;
+mkdir($dst_framework_path,0777);
 # Create lib subdirectory
 my $dst_lib_path = $app_path . "/Contents/lib";
 mkdir($dst_lib_path,0777);
@@ -41,9 +59,17 @@ my $res_path = $app_path . "/Contents/Resources";
 ########################################
 # Get all the relevant framework and library files
 ########################################
-# Start by getting the dependency list from the executable
+# Construct path to the executable
 my $exec_path = $app_path . "/Contents/MacOS";
 my $exec = $exec_path . "/DesktopStreamer";
+# Error checking
+if (!(-e $exec))
+{
+    print "Executable $exec not found. Exiting!\n";
+    exit;
+}
+
+# Start by getting the dependency list from the executable
 my $bin;
 my @bin_list;
 my @bin_dep_list;
@@ -119,6 +145,18 @@ while(scalar(@bin_list) > 0)
         @line_parts = split(' ', $line);
         # The first part is path to a file and rest is not needed for our purposes
         $dep = $line_parts[0];
+        # Perform a few checks
+        if (substr($dep, 0, 1) eq "@")
+        {
+            # Shouldn't touch this dependency
+            next;
+        }
+        if (substr($dep, 0, 1) ne "/")
+        {
+            # We might have a problem
+            print "$dep found with no prefix in $bin, fix its path and run this script again\n";
+            next;
+        }
         # Break up the path of dependency into components
         @dep_path = split('/', $dep);
         # Since all paths starts with '/' element $dep_path[0] is null, so get rid of it
@@ -271,8 +309,7 @@ if ($debug == 1)
     print "pmdoc_path:$pmdoc_path\n";
 }
 # Create pmdoc directory
-$cmd = "mkdir $pmdoc_path";
-$result = `$cmd`;
+mkdir($pmdoc_path,0777);
 # Generate .pkg path
 my $pkg_file = $app_parent_path . "/$app_name_no_suffix.pkg";
 # Generate pmdoc index xml file path
