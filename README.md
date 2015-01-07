@@ -13,7 +13,8 @@ DisplayCluster provides the following functionality:
 * Stream content from remote sources such as laptops / desktops or high-performance remote visualization machines
 * [Documentation](http://bluebrain.github.io/DisplayCluster-0.4/index.html)
 
-## Building from Source 
+
+## Building from Source
 
 ```
   module load boost/1.55.0-mpich-3.1
@@ -31,6 +32,10 @@ DisplayCluster provides the following functionality:
   cd build
   cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/your/custom/install/dir
 ```
+
+## Packaging DesktopStreamer for osx Distribution
+
+TBD
 
 ## Original Project
 
