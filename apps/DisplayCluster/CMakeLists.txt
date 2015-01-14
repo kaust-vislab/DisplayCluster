@@ -33,7 +33,18 @@ set(DISPLAYCLUSTER_SOURCES
   WebbrowserWidget.cpp
 )
 
-set(DISPLAYCLUSTER_LINK_LIBRARIES dccore dcwebservice)
+find_package(ALSA)
+include_directories(${ALSA_INCLUDE_DIRS})
+
+set(DISPLAYCLUSTER_LINK_LIBRARIES dccore dcwebservice 
+  ${Boost_PROGRAM_OPTIONS_LIBRARY} 
+  ${Boost_THREAD_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_REGEX_LIBRARY}
+  ${ALSA_LIBRARIES} 
+  ${SuperCollider_LIBRARIES}
+)
 
 qt4_wrap_cpp(DISPLAYCLUSTER_MOC_OUTFILES ${DISPLAYCLUSTER_MOC_HEADERS})
 
