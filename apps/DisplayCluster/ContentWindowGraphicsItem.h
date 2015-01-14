@@ -43,6 +43,31 @@
 
 #include <QtGui/QGraphicsObject>
 
+#include "SC_LanguageClient.h"
+#include "SC_StringBuffer.h"
+//MADHU: A test sonification client
+
+// =====================================================================
+// SC_CPPClient - cpp sclang client.
+// =====================================================================
+
+class SC_CPPClient : public SC_LanguageClient
+{
+ public:
+    SC_CPPClient(const char* name):SC_LanguageClient(name){}
+
+    virtual void postText(const char* str, size_t len);
+    virtual void postFlush(const char* str, size_t len);
+    virtual void postError(const char* str, size_t len);
+    virtual void flush();
+    void initialize();
+    void shutdown();
+    void run(double&);
+};
+
+
+
+
 /**
  * Represent a ContentWindow in a QListView.
  */
@@ -117,6 +142,7 @@ private:
 
     // counter used to determine stacking order in the UI
     static qreal zCounter_;
-};
 
+    SC_CPPClient* sonifier;
+};
 #endif

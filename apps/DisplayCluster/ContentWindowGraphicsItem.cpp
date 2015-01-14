@@ -44,6 +44,7 @@
 
 #include "globals.h"
 #include "configuration/Configuration.h"
+#include "log.h"
 
 #include "gestures/DoubleTapGestureRecognizer.h"
 #include "gestures/PanGestureRecognizer.h"
@@ -57,6 +58,78 @@
 #include <QGestureEvent>
 
 #define STD_WHEEL_DELTA 120 // Common value for the delta of mouse wheel events
+
+
+static FILE* gPostDest = stdout;
+//static SC_CPPClient sonifier("sclang");
+
+
+void SC_CPPClient::postText(const char* str, size_t len)
+{
+    fwrite(str, sizeof(char), len, gPostDest);
+}
+
+void SC_CPPClient::postFlush(const char* str, size_t len)
+{
+    fwrite(str, sizeof(char), len, gPostDest);
+    fflush(gPostDest);
+}
+
+void SC_CPPClient::postError(const char* str, size_t len)
+{
+    fprintf(gPostDest, "ERROR: ");
+    fwrite(str, sizeof(char), len, gPostDest);
+}
+
+void SC_CPPClient::flush()
+{
+    fflush(gPostDest);
+}
+
+void SC_CPPClient::initialize(){
+    // initialize runtime
+    initRuntime();
+
+    // startup library
+    compileLibrary();
+
+    // we first connect to the synth server
+    setCmdLine("s = Server(\"aServer\", NetAddr(\"109.171.138.157\", 57110));");
+    runLibrary(s_interpretCmdLine);
+
+    // start the zoomer synth
+    setCmdLine("s.sendMsg(\"s_new\", \"zoomer\", x = s.nextNodeID, 1, 1);");
+    runLibrary(s_interpretCmdLine);
+
+    flush();
+}
+
+void SC_CPPClient::run(double &w){
+    char cmdBuffer[50];
+
+    sprintf(cmdBuffer, "s.sendMsg(\"n_set\", x, \"amp\", %f);", w);
+    setCmdLine(cmdBuffer);
+
+    //setCmdLine("s.sendMsg(\"s_new\", \"sine\", n = s.nextNodeID, 0, 1);");
+    runLibrary(s_interpretCmdLine);
+
+    flush();
+
+}
+
+void SC_CPPClient::shutdown(){
+
+    setCmdLine("s.sendMsg(\"/n_free\", x);");
+    runLibrary(s_interpretCmdLine);
+    flush();
+
+    // shutdown library
+    shutdownLibrary();
+    flush ();
+    shutdownRuntime ();
+
+}
+
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
@@ -84,10 +157,15 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem( ContentWindowPtr contentWi
     grabGesture( Qt::SwipeGesture );
     grabGesture( Qt::TapAndHoldGesture );
     grabGesture( Qt::TapGesture );
+
+    // Create a simple cpp client app
+    sonifier = new SC_CPPClient("DisplayClusterTest");
+    sonifier->initialize();
 }
 
 ContentWindowGraphicsItem::~ContentWindowGraphicsItem()
 {
+    sonifier->shutdown();
 }
 
 ContentWindowPtr ContentWindowGraphicsItem::getContentWindow() const
@@ -164,6 +242,12 @@ void ContentWindowGraphicsItem::mouseMoveEvent( QGraphicsSceneMouseEvent* event_
             else
                 contentWindow_->setSize( coordinates.height() * targetAR,
                                          coordinates.height( ));
+            double w=0.0;
+            double h=0.0;
+            contentWindow_->getSize(w,h);
+            //put_flog(LOG_FATAL,"targetAR = %f",w);
+            sonifier->run(w); //? needs something else here.
+
         }
         else
         {
