@@ -11,6 +11,7 @@ import subprocess
 import shlex
 import distutils.spawn
 import argparse
+import socket
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", help="The configuration file to load")
@@ -28,7 +29,15 @@ DC_BIN = DC_PATH + '/bin/displaycluster'
 if args.config:
     DC_CONFIG_FILE = args.config
 else:
-    DC_CONFIG_FILE = DC_PATH + '/share/DisplayCluster/examples/configuration.xml'
+    fqhostname = socket.gethostname()
+    try:
+        hostname = fqhostname[:fqhostname.index('.')]
+    except ValueError:
+        hostname = fqhostname
+    if hostname == 'vis-cubes-fe':
+        DC_CONFIG_FILE = '/var/remote/software/DisplayCluster/configs/configuration-vis-cubes-ipaddr-v0.4.xml'
+    else:
+        DC_CONFIG_FILE = DC_PATH + '/share/DisplayCluster/examples/configuration.xml'
 
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
