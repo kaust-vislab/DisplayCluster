@@ -37,7 +37,9 @@ else:
     if hostname == 'vis-cubes-fe':
         DC_CONFIG_FILE = '/var/remote/software/DisplayCluster/configs/configuration-vis-cubes-ipaddr-v0.4.xml'
     else:
-        DC_CONFIG_FILE = DC_PATH + '/share/DisplayCluster/examples/configuration.xml'
+        DC_CONFIG_FILE = '/var/remote/software/DisplayCluster/configs/configuration-z2-ipaddr-v0.4.vx.separate.xml'
+        #DC_CONFIG_FILE = DC_PATH + '/share/DisplayCluster/examples/configuration.xml'
+
 
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
@@ -81,7 +83,7 @@ if IS_MPICH:
     ver = words[1].split('.')
     IS_MPICH2 = ver[0] == '2'
     IS_MPICH3 = ver[0] == '3'
-    
+
 
 if IS_MVAPICH:
     MPI_SPECIAL_FLAGS = '-env MV2_ENABLE_AFFINITY 0 -env IPATH_NO_CPUAFFINITY 1'
