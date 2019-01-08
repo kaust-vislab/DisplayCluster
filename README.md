@@ -33,6 +33,8 @@ For the scripts below, the variables `<INSTALL_DIR>` and `<CONFIG_DIR>` should b
 
 ## Modules File for DisplayCluster
 
+This file can also be found [here](examples/modulefiles/DisplayCluster/0.4).
+
 ```
   #%Module
   #
