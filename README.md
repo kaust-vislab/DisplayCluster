@@ -16,21 +16,51 @@ DisplayCluster provides the following functionality:
 
 ## Building from Source
 
-```
-  module load boost/1.55.0-mpich-3.1
-  module load ffmpeg/0.10.2
-  module load turbojpeg/1.2.1
-  module load mpich-x86_64
-  module load python/2.7.3
-  module load qt/4.8.1
-  module load fcgi/2.4.1
-  module load TUIO/1.4
+For the scripts below, the variables `<INSTALL_DIR>` and `<CONFIG_DIR>` should be replaced with the paths to the install directory and the configuration directory for DisplayCluster.
 
-  git clone https://github.com/kaust-vislab/DisplayCluster.git
+
+```
+  module load mpi/mpich-x86_64
+
+  git clone -b CentOS7 https://github.com/kaust-vislab/DisplayCluster.git
   cd DisplayCluster
   mkdir build
   cd build
-  cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/your/custom/install/dir
+  cmake .. -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  make -j72
+  make install
+```
+
+## Modules File for DisplayCluster
+
+```
+  #%Module
+  #
+  # Modulefile for Display Cluster (touch) 
+  #
+  # Madhu Srinivasan, madhu.srinivasan@kaust.edu.sa
+  #
+  proc ModulesHelp { } {
+    puts stderr " "
+    puts stderr "\t This module installs DisplayCluster v0.4 "
+    puts stderr " "
+  }
+
+  module-whatis   "installs DisplayCluster v0.4"
+
+  module load mpi/mpich-x86_64
+
+  prepend-path DISPLAYCLUSTER_CONFIG_DIR <CONFIG_DIR>
+  prepend-path DISPLAYCLUSTER_DIR <INSTALL_DIR>
+  set package_root <INSTALL_DIR>
+
+  prepend-path PATH ${package_root}/bin
+  prepend-path LIBRARY_PATH ${package_root}/lib
+  prepend-path LD_LIBRARY_PATH ${package_root}/lib
+  prepend-path CMAKE_LIBRARY_PATH ${package_root}/lib
+  prepend-path CPLUS_INCLUDE_PATH ${package_root}/include
+  prepend-path CMAKE_INCLUDE_PATH ${package_root}/include
+
 ```
 
 ## Packaging DesktopStreamer for osx Distribution
