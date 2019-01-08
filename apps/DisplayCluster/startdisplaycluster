@@ -25,6 +25,15 @@ args = parser.parse_args()
 
 # Let's get a few paths set
 
+# DisplayCluster Configuration directory; this is the directory
+# where all the configurations for KVL systems are setup
+if 'DISPLAYCLUSTER_CONFIG_DIR' not in os.environ:
+    print("ERROR: $DISPLAYCLUSTER_CONFIG_DIR environment variable not set")
+    exit(-1)
+else:
+    DC_CONFIG_PATH = os.environ['DISPLAYCLUSTER_CONFIG_DIR']
+
+
 # DisplayCluster directory; this is the parent directory of this script
 # Ideally, this should be set when you do module load DisplayCluster/*
 
@@ -48,10 +57,12 @@ else:
     except ValueError:
         hostname = fqhostname
     if hostname == 'vis-cubes-fe':
-        DC_CONFIG_FILE = '/var/remote/software/DisplayCluster/configs/configuration-vis-cubes-ipaddr-v0.4.xml'
+        DC_CONFIG_FILE = DC_CONFIG_PATH + '/configuration-vis-cubes-ipaddr-v0.4.xml'
+    elif hostname == "z2-fe":
+        DC_CONFIG_FILE = DC_CONFIG_PATH + '/configuration-z2-ipaddr-v0.4.vx.separate.xml'
     else:
-        DC_CONFIG_FILE = '/var/remote/software/DisplayCluster/configs/configuration-z2-ipaddr-v0.4.vx.separate.xml'
-        #DC_CONFIG_FILE = DC_PATH + '/share/DisplayCluster/examples/configuration.xml'
+        print('ERROR: Please provide a config file with --config switch')
+        exit(-1)
 
 
 # set the Python path so the pydc module can be found
