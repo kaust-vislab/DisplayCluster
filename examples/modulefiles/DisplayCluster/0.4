@@ -14,9 +14,9 @@ module-whatis   "installs DisplayCluster v0.4"
 
 module load mpi/mpich-x86_64
 
-prepend-path DISPLAYCLUSTER_CONFIG_DIR /home/srinivm/CentOS7/software/DisplayCluster/configs
-prepend-path DISPLAYCLUSTER_DIR /home/srinivm/CentOS7/software/DisplayCluster/0.4
-set package_root /home/srinivm/CentOS7/software/DisplayCluster/0.4
+prepend-path DISPLAYCLUSTER_CONFIG_DIR <CONFIG_DIR>
+prepend-path DISPLAYCLUSTER_DIR <INSTALL_DIR>
+set package_root <INSTALL_DIR>
 
 prepend-path PATH ${package_root}/bin
 prepend-path LIBRARY_PATH ${package_root}/lib
